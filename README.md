@@ -208,6 +208,20 @@ make help                   # Show all commands
 
 **Need Help?** Start with [📋 Quick Start](docs/QUICKSTART.md) or check [🔧 Troubleshooting](docs/TROUBLESHOOTING.md)
 
+## 🙏 Acknowledgments
+
+This project stands on the shoulders of amazing open-source tools:
+
+- **[multi-gitter](https://github.com/lindell/multi-gitter)** - The inspiration for this project's name and approach to bulk repository operations
+- **[yq](https://github.com/mikefarah/yq)** - YAML processor that makes configuration parsing effortless
+- **[jq](https://github.com/jqlang/jq)** - JSON processor for handling API responses with precision
+- **[GitHub CLI (gh)](https://cli.github.com/)** - Enhanced GitHub operations and authentication
+- **[shellcheck](https://github.com/koalaman/shellcheck)** - Shell script linting to keep our bash code clean
+- **[Homebrew](https://brew.sh/)** - Package management for macOS dependencies
+- **curl** - The reliable HTTP client powering all our API interactions
+
+Special thanks to the **multi-gitter** project for pioneering the approach of managing operations across multiple repositories. While this tool focuses specifically on PR automation, multi-gitter's broader vision of bulk repository operations inspired our approach.
+
 ---
 
 **Ready to get started?** 🚀 **[📋 Quick Start Guide](docs/QUICKSTART.md)**
