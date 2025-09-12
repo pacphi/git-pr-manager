@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v3"
 	"github.com/cphillipson/multi-gitter-pr-automation/mcp-server/internal/types"
+	"gopkg.in/yaml.v3"
 )
 
 // Manager handles configuration loading and validation

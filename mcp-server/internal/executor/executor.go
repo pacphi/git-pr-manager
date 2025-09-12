@@ -86,9 +86,9 @@ func (e *Executor) executeCommand(command string, args ...string) *types.Command
 		result.Success = false
 		result.Error = e.handleError(ctx, err)
 		result.ExitCode = e.getExitCode(ctx, err)
-		 return result
+		return result
 	}
-	
+
 	result.Success = true
 	result.ExitCode = 0
 	return result

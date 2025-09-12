@@ -7,12 +7,26 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/cphillipson/multi-gitter-pr-automation/mcp-server/internal/config"
 	"github.com/cphillipson/multi-gitter-pr-automation/mcp-server/internal/executor"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 // Helper functions for parameter access
+
+// extractArguments safely extracts arguments from request parameters
+func extractArguments(args interface{}) (map[string]interface{}, error) {
+	if args == nil {
+		return make(map[string]interface{}), nil
+	}
+
+	argsMap, ok := args.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid arguments type: expected map[string]interface{}, got %T", args)
+	}
+
+	return argsMap, nil
+}
 
 // handleJSONOutput handles JSON output formatting for commands
 func handleJSONOutput(exec *executor.Executor, makeTarget string) (*mcp.CallToolResult, error) {
@@ -20,7 +34,7 @@ func handleJSONOutput(exec *executor.Executor, makeTarget string) (*mcp.CallTool
 		return mcp.NewToolResultError(fmt.Sprintf("failed to set OUTPUT_FORMAT: %v", err)), nil
 	}
 	result := exec.ExecuteMake(makeTarget)
-	
+
 	// Try to parse JSON output
 	var jsonResult interface{}
 	if result.Success && result.Output != "" {
@@ -32,7 +46,7 @@ func handleJSONOutput(exec *executor.Executor, makeTarget string) (*mcp.CallTool
 			return mcp.NewToolResultText(formatResponse(response)), nil
 		}
 	}
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -74,17 +88,17 @@ func CreateTools() []mcp.Tool {
 		createSetupRepositoriesTool(),
 		createValidateConfigTool(),
 		createBackupRestoreConfigTool(),
-		
+
 		// PR Management Tools
 		createCheckPullRequestsTool(),
 		createMergePullRequestsTool(),
 		createWatchRepositoriesTool(),
-		
+
 		// Repository Tools
 		createGetRepositoryStatsTool(),
 		createTestNotificationsTool(),
 		createLintScriptsTool(),
-		
+
 		// Utility Tools
 		createCheckDependenciesTool(),
 		createInstallDependenciesTool(),
@@ -183,11 +197,14 @@ func createInstallDependenciesTool() mcp.Tool {
 // HandleSetupRepositories runs the interactive setup wizard to configure repositories
 func HandleSetupRepositories(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
-	
+
 	// Determine which setup command to run
-	args := request.Params.Arguments
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
 	mode := getStringParam(args, "mode", "")
-	
+
 	var makeTarget string
 	switch mode {
 	case "full":
@@ -199,9 +216,9 @@ func HandleSetupRepositories(_ context.Context, request mcp.CallToolRequest) (*m
 	default:
 		makeTarget = "setup-wizard"
 	}
-	
+
 	result := exec.ExecuteMake(makeTarget)
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -210,57 +227,63 @@ func HandleSetupRepositories(_ context.Context, request mcp.CallToolRequest) (*m
 	if result.Error != "" {
 		response["error"] = result.Error
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleValidateConfig validates the configuration file and checks for common issues
 func HandleValidateConfig(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
 	configFile := getStringParam(args, "config_file", "config.yaml")
-	
+
 	// Use config manager to validate
 	configMgr := config.NewManager(configFile)
 	if err := configMgr.Load(); err != nil {
 		response := map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
+			"success":     false,
+			"error":       err.Error(),
 			"config_file": configFile,
 		}
 		return mcp.NewToolResultText(formatResponse(response)), err
 	}
-	
+
 	if err := configMgr.Validate(); err != nil {
 		response := map[string]interface{}{
-			"success": false,
-			"error":   err.Error(),
+			"success":     false,
+			"error":       err.Error(),
 			"config_file": configFile,
 		}
 		return mcp.NewToolResultText(formatResponse(response)), err
 	}
-	
+
 	stats := configMgr.GetRepositoryStats()
-	
+
 	response := map[string]interface{}{
 		"success":     true,
 		"message":     "Configuration is valid",
 		"config_file": configMgr.GetConfigPath(),
 		"stats":       stats,
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleBackupRestoreConfig backs up or restores configuration files
 func HandleBackupRestoreConfig(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
 	action, err := requireStringParam(args, "action")
 	if err != nil {
 		return mcp.NewToolResultError("action parameter is required"), err
 	}
-	
+
 	exec := executor.NewExecutor("..")
-	
+
 	var makeTarget string
 	switch action {
 	case "backup":
@@ -270,9 +293,9 @@ func HandleBackupRestoreConfig(_ context.Context, request mcp.CallToolRequest) (
 	default:
 		return mcp.NewToolResultError(fmt.Sprintf("invalid action: %s. Must be 'backup' or 'restore'", action)), nil
 	}
-	
+
 	result := exec.ExecuteMake(makeTarget)
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -281,29 +304,32 @@ func HandleBackupRestoreConfig(_ context.Context, request mcp.CallToolRequest) (
 	if result.Error != "" {
 		response["error"] = result.Error
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleCheckPullRequests checks pull request status across all configured repositories
 func HandleCheckPullRequests(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
-	args := request.Params.Arguments
-	
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
+
 	// Handle config file override
 	if configFile := getStringParam(args, "config_file", ""); configFile != "" {
 		if err := os.Setenv("CONFIG_FILE", configFile); err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to set CONFIG_FILE: %v", err)), nil
 		}
 	}
-	
+
 	outputFormat := getStringParam(args, "output_format", "")
-	
+
 	// Handle JSON output
 	if outputFormat == "json" {
 		return handleJSONOutput(exec, "check-prs-json")
 	}
-	
+
 	// Handle provider filtering
 	var makeTarget string
 	if provider := getStringParam(args, "provider", ""); provider != "" {
@@ -320,9 +346,9 @@ func HandleCheckPullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 	} else {
 		makeTarget = "check-prs"
 	}
-	
+
 	result := exec.ExecuteMake(makeTarget)
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -333,27 +359,30 @@ func HandleCheckPullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 	if provider := getStringParam(args, "provider", ""); provider != "" {
 		response["provider"] = provider
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleMergePullRequests merges ready pull requests across configured repositories
 func HandleMergePullRequests(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
-	args := request.Params.Arguments
-	
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
+
 	// Handle config file override
 	if configFile := getStringParam(args, "config_file", ""); configFile != "" {
 		if err := os.Setenv("CONFIG_FILE", configFile); err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to set CONFIG_FILE: %v", err)), nil
 		}
 	}
-	
+
 	mode := getStringParam(args, "mode", "")
-	
+
 	var makeTarget string
 	var response map[string]interface{}
-	
+
 	switch mode {
 	case "dry-run":
 		if err := os.Setenv("DRY_RUN", "true"); err != nil {
@@ -361,7 +390,7 @@ func HandleMergePullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 		}
 		makeTarget = "dry-run"
 		result := exec.ExecuteMake(makeTarget)
-		
+
 		response = map[string]interface{}{
 			"success": result.Success,
 			"output":  result.Output,
@@ -376,7 +405,7 @@ func HandleMergePullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 		}
 		makeTarget = "force-merge"
 		result := exec.ExecuteMake(makeTarget)
-		
+
 		response = map[string]interface{}{
 			"success": result.Success,
 			"output":  result.Output,
@@ -388,7 +417,7 @@ func HandleMergePullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 	default:
 		makeTarget = "merge-prs"
 		result := exec.ExecuteMake(makeTarget)
-		
+
 		response = map[string]interface{}{
 			"success": result.Success,
 			"output":  result.Output,
@@ -397,30 +426,36 @@ func HandleMergePullRequests(_ context.Context, request mcp.CallToolRequest) (*m
 			response["error"] = result.Error
 		}
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleWatchRepositories continuously monitors PR status (not supported in MCP)
 func HandleWatchRepositories(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
-	interval := getFloatParam(args, "interval", 30)
-	
-	response := map[string]interface{}{
-		"success": false,
-		"error":   "Continuous watching is not supported in MCP request/response model",
-		"suggestion": "Use check_pull_requests repeatedly or run 'make watch' in terminal",
-		"interval": interval,
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
 	}
-	
+	interval := getFloatParam(args, "interval", 30)
+
+	response := map[string]interface{}{
+		"success":    false,
+		"error":      "Continuous watching is not supported in MCP request/response model",
+		"suggestion": "Use check_pull_requests repeatedly or run 'make watch' in terminal",
+		"interval":   interval,
+	}
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleGetRepositoryStats gets statistics about configured repositories
 func HandleGetRepositoryStats(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
 	configFile := getStringParam(args, "config_file", "config.yaml")
-	
+
 	configMgr := config.NewManager(configFile)
 	if err := configMgr.Load(); err != nil {
 		response := map[string]interface{}{
@@ -429,15 +464,15 @@ func HandleGetRepositoryStats(_ context.Context, request mcp.CallToolRequest) (*
 		}
 		return mcp.NewToolResultText(formatResponse(response)), err
 	}
-	
+
 	stats := configMgr.GetRepositoryStats()
-	
+
 	response := map[string]interface{}{
-		"success": true,
-		"stats":   stats,
+		"success":     true,
+		"stats":       stats,
 		"config_file": configMgr.GetConfigPath(),
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
@@ -445,7 +480,7 @@ func HandleGetRepositoryStats(_ context.Context, request mcp.CallToolRequest) (*
 func HandleTestNotifications(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
 	result := exec.ExecuteMake("test-notifications")
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -453,7 +488,7 @@ func HandleTestNotifications(_ context.Context, request mcp.CallToolRequest) (*m
 	if result.Error != "" {
 		response["error"] = result.Error
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
@@ -461,7 +496,7 @@ func HandleTestNotifications(_ context.Context, request mcp.CallToolRequest) (*m
 func HandleLintScripts(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
 	result := exec.ExecuteMake("lint")
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -469,7 +504,7 @@ func HandleLintScripts(_ context.Context, request mcp.CallToolRequest) (*mcp.Cal
 	if result.Error != "" {
 		response["error"] = result.Error
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
@@ -477,28 +512,31 @@ func HandleLintScripts(_ context.Context, request mcp.CallToolRequest) (*mcp.Cal
 func HandleCheckDependencies(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
 	result := exec.CheckDependencies()
-	
+
 	// Also check environment variables
 	missingEnvVars := exec.ValidateEnvironment()
-	
+
 	response := map[string]interface{}{
-		"success":        result.Success,
-		"output":         result.Output,
+		"success":          result.Success,
+		"output":           result.Output,
 		"missing_env_vars": missingEnvVars,
-		"env_vars_ok":    len(missingEnvVars) == 0,
+		"env_vars_ok":      len(missingEnvVars) == 0,
 	}
 	if result.Error != "" {
 		response["error"] = result.Error
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 
 // HandleInstallDependencies installs required dependencies automatically
 func HandleInstallDependencies(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	exec := executor.NewExecutor("..")
-	args := request.Params.Arguments
-	
+	args, err := extractArguments(request.Params.Arguments)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to extract arguments: %v", err)), err
+	}
+
 	var makeTarget string
 	if platform := getStringParam(args, "platform", ""); platform != "" {
 		switch strings.ToLower(platform) {
@@ -512,9 +550,9 @@ func HandleInstallDependencies(_ context.Context, request mcp.CallToolRequest) (
 	} else {
 		makeTarget = "install"
 	}
-	
+
 	result := exec.ExecuteMake(makeTarget)
-	
+
 	response := map[string]interface{}{
 		"success": result.Success,
 		"output":  result.Output,
@@ -525,7 +563,7 @@ func HandleInstallDependencies(_ context.Context, request mcp.CallToolRequest) (
 	if platform := getStringParam(args, "platform", ""); platform != "" {
 		response["platform"] = platform
 	}
-	
+
 	return mcp.NewToolResultText(formatResponse(response)), nil
 }
 

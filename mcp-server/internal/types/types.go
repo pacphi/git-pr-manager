@@ -3,10 +3,10 @@ package types
 
 // Config represents the YAML configuration structure
 type Config struct {
-	Config       GlobalConfig               `yaml:"config"`
-	Repositories map[string][]Repository    `yaml:"repositories"`
-	Auth         map[string]interface{}     `yaml:"auth"`
-	Notifications NotificationConfig        `yaml:"notifications"`
+	Config        GlobalConfig            `yaml:"config"`
+	Repositories  map[string][]Repository `yaml:"repositories"`
+	Auth          map[string]interface{}  `yaml:"auth"`
+	Notifications NotificationConfig      `yaml:"notifications"`
 }
 
 // GlobalConfig holds global configuration settings
@@ -64,10 +64,10 @@ type EmailConfig struct {
 
 // CommandResult represents the result of a command execution
 type CommandResult struct {
-	Success    bool   `json:"success"`
-	Output     string `json:"output"`
-	Error      string `json:"error,omitempty"`
-	ExitCode   int    `json:"exit_code"`
+	Success  bool   `json:"success"`
+	Output   string `json:"output"`
+	Error    string `json:"error,omitempty"`
+	ExitCode int    `json:"exit_code"`
 }
 
 // RepositoryStats represents statistics for repositories

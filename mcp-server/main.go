@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	mcpServer "github.com/cphillipson/multi-gitter-pr-automation/mcp-server/server"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	mcpServer "github.com/cphillipson/multi-gitter-pr-automation/mcp-server/server"
 )
 
 const (
