@@ -4,7 +4,7 @@
 
 Manage PR automation centrally through YAML configuration. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
 
-## ✨ Why Multi-Gitter?
+## ✨ Key Benefits
 
 - ✅ **Central Configuration** - Manage all repositories from one YAML file
 - 🔄 **Multi-Provider Support** - GitHub, GitLab, Bitbucket in one tool
