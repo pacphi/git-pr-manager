@@ -119,15 +119,15 @@ check_github_prs() {
 
     # Get open PRs
     local prs_json
-    prs_json=$(gh api "repos/$repo_name/pulls" --jq '.[] | select(.state == "open")' 2>/dev/null || echo "[]")
+    prs_json=$(gh api "repos/$repo_name/pulls" 2>/dev/null || echo "[]")
 
     if [[ "$prs_json" == "[]" ]] || [[ -z "$prs_json" ]]; then
         echo "No open PRs found for $repo_name"
         return 0
     fi
 
-    # Process each PR
-    echo "$prs_json" | jq -r '.' | while IFS= read -r pr; do
+    # Filter and process each open PR
+    echo "$prs_json" | jq -c '.[] | select(.state == "open")' | while IFS= read -r pr; do
         local pr_number pr_title pr_author pr_mergeable pr_checks pr_labels
 
         pr_number=$(echo "$pr" | jq -r '.number')
@@ -166,28 +166,59 @@ check_github_prs() {
             fi
         fi
 
-        # Get status checks
+        # Get status checks using combined status endpoint
         local checks_status="unknown"
-        local checks_response
-        checks_response=$(gh api "repos/$repo_name/pulls/$pr_number/checks" 2>/dev/null || echo '{"check_runs": []}')
+        local pr_sha
+        pr_sha=$(echo "$pr" | jq -r '.head.sha')
 
-        if [[ "$checks_response" != '{"check_runs": []}' ]]; then
-            local total_checks success_checks
-            total_checks=$(echo "$checks_response" | jq '.check_runs | length')
-            success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+        # Try combined status first (covers most check types)
+        local status_response
+        status_response=$(gh api "repos/$repo_name/commits/$pr_sha/status" 2>/dev/null || echo '{"state": "unknown"}')
 
-            if [[ "$total_checks" -eq 0 ]]; then
-                checks_status="none"
-            elif [[ "$success_checks" -eq "$total_checks" ]]; then
+        local combined_state
+        combined_state=$(echo "$status_response" | jq -r '.state')
+
+        case "$combined_state" in
+            "success")
                 checks_status="passing"
-            else
+                ;;
+            "failure"|"error")
                 checks_status="failing"
-            fi
-        fi
+                ;;
+            "pending")
+                checks_status="pending"
+                ;;
+            *)
+                # Fallback to check-runs API if combined status is unavailable
+                local checks_response
+                checks_response=$(gh api "repos/$repo_name/commits/$pr_sha/check-runs" 2>/dev/null || echo '{"check_runs": []}')
+
+                if [[ "$checks_response" != '{"check_runs": []}' ]]; then
+                    local total_checks success_checks
+                    total_checks=$(echo "$checks_response" | jq '.total_count // (.check_runs | length)')
+                    success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+
+                    if [[ "$total_checks" -eq 0 ]]; then
+                        checks_status="none"
+                    elif [[ "$success_checks" -eq "$total_checks" ]]; then
+                        checks_status="passing"
+                    else
+                        checks_status="failing"
+                    fi
+                else
+                    # No checks found - assume none required
+                    checks_status="none"
+                fi
+                ;;
+        esac
 
         # Determine if PR is ready to merge
         local ready_to_merge="no"
         if [[ "$pr_mergeable" == "true" ]] && [[ "$checks_status" == "passing" ]]; then
+            ready_to_merge="yes"
+        elif [[ "$pr_mergeable" == "null" ]] && [[ "$checks_status" == "none" || "$checks_status" == "passing" || "$checks_status" == "unknown" || "$checks_status" == "pending" ]]; then
+            # Handle null mergeable status (GitHub hasn't computed it yet)
+            # Accept various check states for dependabot PRs since GitHub UI shows them as ready
             ready_to_merge="yes"
         fi
 

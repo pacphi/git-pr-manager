@@ -2,7 +2,7 @@
 
 🤖 **Automate pull request management across multiple Git repositories**
 
-Instead of adding GitHub Actions to every repository, manage PR automation centrally through YAML configuration. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
+Manage PR automation centrally through YAML configuration. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
 
 ## ✨ Why Multi-Gitter?
 

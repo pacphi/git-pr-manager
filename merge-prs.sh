@@ -176,7 +176,7 @@ merge_github_pr() {
 
         if [[ "$author_allowed" == false ]]; then
             log_warning "Author $pr_author not in allowed actors list, skipping PR $repo_name#$pr_number"
-            return 0
+            return 2
         fi
     fi
 
@@ -185,25 +185,52 @@ merge_github_pr() {
     require_checks=$(yq '.config.auto_merge.wait_for_checks' "$CONFIG_FILE" 2>/dev/null || echo "true")
 
     if [[ "$require_checks" == "true" ]]; then
-        local checks_response
-        checks_response=$(gh api "repos/$repo_name/pulls/$pr_number/checks" 2>/dev/null || echo '{"check_runs": []}')
+        local pr_sha
+        pr_sha=$(echo "$pr_json" | jq -r '.head.sha')
 
-        if [[ "$checks_response" != '{"check_runs": []}' ]]; then
-            local total_checks success_checks
-            total_checks=$(echo "$checks_response" | jq '.check_runs | length')
-            success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+        # Try combined status first (covers most check types)
+        local status_response
+        status_response=$(gh api "repos/$repo_name/commits/$pr_sha/status" 2>/dev/null || echo '{"state": "unknown"}')
 
-            if [[ "$total_checks" -gt 0 ]] && [[ "$success_checks" -ne "$total_checks" ]]; then
-                log_warning "Status checks not passing for PR $repo_name#$pr_number, skipping"
-                return 0
-            fi
-        fi
+        local combined_state
+        combined_state=$(echo "$status_response" | jq -r '.state')
+
+        case "$combined_state" in
+            "failure"|"error")
+                log_warning "Status checks failing for PR $repo_name#$pr_number, skipping"
+                return 2
+                ;;
+            "pending")
+                log_warning "Status checks still pending for PR $repo_name#$pr_number, skipping"
+                return 2
+                ;;
+            "success")
+                # All checks passing, continue
+                ;;
+            *)
+                # Fallback to check-runs API if combined status is unavailable
+                local checks_response
+                checks_response=$(gh api "repos/$repo_name/commits/$pr_sha/check-runs" 2>/dev/null || echo '{"check_runs": []}')
+
+                if [[ "$checks_response" != '{"check_runs": []}' ]]; then
+                    local total_checks success_checks
+                    total_checks=$(echo "$checks_response" | jq '.total_count // (.check_runs | length)')
+                    success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+
+                    if [[ "$total_checks" -gt 0 ]] && [[ "$success_checks" -ne "$total_checks" ]]; then
+                        log_warning "Status checks not passing for PR $repo_name#$pr_number, skipping"
+                        return 2
+                    fi
+                fi
+                # If no checks found or all successful, continue
+                ;;
+        esac
     fi
 
     # Check if PR is mergeable
-    if [[ "$pr_mergeable" != "true" ]] && [[ "$FORCE" != "true" ]]; then
+    if [[ "$pr_mergeable" != "true" ]] && [[ "$pr_mergeable" != "null" ]] && [[ "$FORCE" != "true" ]]; then
         log_warning "PR $repo_name#$pr_number is not mergeable, skipping"
-        return 0
+        return 2
     fi
 
     # Check if approval is required
@@ -313,12 +340,12 @@ merge_gitlab_mr() {
     # Check if MR is in correct state
     if [[ "$mr_state" != "opened" ]]; then
         log_warning "MR $repo_name!$mr_iid is not in opened state, skipping"
-        return 0
+        return 2
     fi
 
     if [[ "$mr_mergeable" != "can_be_merged" ]] && [[ "$FORCE" != "true" ]]; then
         log_warning "MR $repo_name!$mr_iid is not mergeable, skipping"
-        return 0
+        return 2
     fi
 
     # Convert merge strategy to GitLab API format
@@ -400,7 +427,7 @@ merge_bitbucket_pr() {
     # Check if PR is in correct state
     if [[ "$pr_state" != "OPEN" ]]; then
         log_warning "PR $repo_name#$pr_id is not in OPEN state, skipping"
-        return 0
+        return 2
     fi
 
     # Convert merge strategy to Bitbucket API format
