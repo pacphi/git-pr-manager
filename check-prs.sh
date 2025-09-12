@@ -225,7 +225,7 @@ check_github_prs() {
 
         # Determine if PR is ready to merge based on GitHub's own logic
         local ready_to_merge="no"
-        
+
         # Skip draft PRs
         if [[ "$pr_draft" == "true" ]]; then
             ready_to_merge="no"
