@@ -1,0 +1,47 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Configuration backups
+config.yaml.backup.*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Shell script artifacts
+*.pid
+
+# Cache directories
+.cache/
+cache/
+
+# Configuration files (users should copy config.sample to config.yaml)
+config.yaml
+
+# Local development files
+local-config.yaml
+test-config.yaml
+debug-*.yaml

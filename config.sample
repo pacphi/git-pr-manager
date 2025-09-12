@@ -1,0 +1,90 @@
+# Multi-Gitter Pull-Request Automation Configuration
+# This file defines repositories to watch for PR management
+
+# Global configuration
+config:
+  # Default merge strategy (squash, merge, rebase)
+  default_merge_strategy: "squash"
+  # Auto-merge settings
+  auto_merge:
+    enabled: true
+    # Wait for status checks to pass
+    wait_for_checks: true
+    # Require approval before merge
+    require_approval: true
+  # PR filters
+  pr_filters:
+    # Only process PRs from these actors
+    allowed_actors:
+      - "dependabot[bot]"
+      - "renovate[bot]"
+    # Skip PRs with these labels
+    skip_labels:
+      - "do-not-merge"
+      - "wip"
+      - "draft"
+
+# Repository configurations
+repositories:
+  # GitHub repositories
+  github:
+    - name: "owner/repo1"
+      url: "https://github.com/owner/repo1"
+      provider: "github"
+      auth_type: "token"
+      merge_strategy: "squash"
+      auto_merge: true
+
+    - name: "owner/repo2"
+      url: "https://github.com/owner/repo2"
+      provider: "github"
+      auth_type: "token"
+      merge_strategy: "merge"
+      auto_merge: true
+
+  # GitLab repositories
+  gitlab:
+    - name: "group/project1"
+      url: "https://gitlab.com/group/project1"
+      provider: "gitlab"
+      auth_type: "token"
+      merge_strategy: "squash"
+      auto_merge: true
+
+  # Bitbucket repositories
+  bitbucket:
+    - name: "workspace/repo1"
+      url: "https://bitbucket.org/workspace/repo1"
+      provider: "bitbucket"
+      auth_type: "app-password"
+      merge_strategy: "squash"
+      auto_merge: true
+
+# Authentication configuration (use environment variables for security)
+auth:
+  github:
+    token: "${GITHUB_TOKEN}"
+
+  gitlab:
+    token: "${GITLAB_TOKEN}"
+    url: "https://gitlab.com"  # For self-hosted GitLab instances
+
+  bitbucket:
+    username: "${BITBUCKET_USERNAME}"
+    app_password: "${BITBUCKET_APP_PASSWORD}"
+    workspace: "${BITBUCKET_WORKSPACE}"
+
+# Notification settings (optional)
+notifications:
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#deployments"
+    enabled: false
+
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "${EMAIL_USERNAME}"
+    password: "${EMAIL_PASSWORD}"
+    recipient: "${EMAIL_RECIPIENT}"  # Optional, defaults to username
+    enabled: false
