@@ -180,7 +180,7 @@ merge_github_pr() {
         fi
     fi
 
-    # Check status checks
+    # Check status checks - improved logic to handle pending checks properly
     local require_checks
     require_checks=$(yq '.config.auto_merge.wait_for_checks' "$CONFIG_FILE" 2>/dev/null || echo "true")
 
@@ -201,8 +201,33 @@ merge_github_pr() {
                 return 2
                 ;;
             "pending")
-                log_warning "Status checks still pending for PR $repo_name#$pr_number, skipping"
-                return 2
+                # Don't automatically skip pending - check if PR is actually blocked
+                local pr_mergeable_state
+                pr_mergeable_state=$(echo "$pr_json" | jq -r '.mergeable_state // "unknown"')
+                
+                case "$pr_mergeable_state" in
+                    "blocked"|"dirty")
+                        log_warning "PR $repo_name#$pr_number is blocked (state: $pr_mergeable_state), skipping"
+                        return 2
+                        ;;
+                    "unstable")
+                        # Check if there are actual failing required checks
+                        local checks_response
+                        checks_response=$(gh api "repos/$repo_name/commits/$pr_sha/check-runs" 2>/dev/null || echo '{"check_runs": []}')
+                        local failed_checks
+                        failed_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")] | length')
+                        
+                        if [[ "$failed_checks" -gt 0 ]]; then
+                            log_warning "PR $repo_name#$pr_number has failing required checks, skipping"
+                            return 2
+                        else
+                            log_info "PR $repo_name#$pr_number has pending checks but no failures, proceeding with merge"
+                        fi
+                        ;;
+                    *)
+                        log_info "PR $repo_name#$pr_number has pending checks but is mergeable (state: $pr_mergeable_state), proceeding"
+                        ;;
+                esac
                 ;;
             "success")
                 # All checks passing, continue
@@ -213,24 +238,47 @@ merge_github_pr() {
                 checks_response=$(gh api "repos/$repo_name/commits/$pr_sha/check-runs" 2>/dev/null || echo '{"check_runs": []}')
 
                 if [[ "$checks_response" != '{"check_runs": []}' ]]; then
-                    local total_checks success_checks
+                    local total_checks success_checks failed_checks
                     total_checks=$(echo "$checks_response" | jq '.total_count // (.check_runs | length)')
                     success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+                    failed_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")] | length')
 
-                    if [[ "$total_checks" -gt 0 ]] && [[ "$success_checks" -ne "$total_checks" ]]; then
-                        log_warning "Status checks not passing for PR $repo_name#$pr_number, skipping"
+                    # Only block if there are actual failures
+                    if [[ "$failed_checks" -gt 0 ]]; then
+                        log_warning "PR $repo_name#$pr_number has failing checks, skipping"
                         return 2
+                    elif [[ "$total_checks" -gt 0 ]] && [[ "$success_checks" -lt "$total_checks" ]]; then
+                        log_info "PR $repo_name#$pr_number has pending checks but no failures, proceeding with merge"
                     fi
                 fi
-                # If no checks found or all successful, continue
+                # If no checks found or no failures, continue
                 ;;
         esac
     fi
 
-    # Check if PR is mergeable
-    if [[ "$pr_mergeable" != "true" ]] && [[ "$pr_mergeable" != "null" ]] && [[ "$FORCE" != "true" ]]; then
-        log_warning "PR $repo_name#$pr_number is not mergeable, skipping"
+    # Check if PR is mergeable - enhanced logic
+    local pr_draft pr_mergeable_state
+    pr_draft=$(echo "$pr_json" | jq -r '.draft')
+    pr_mergeable_state=$(echo "$pr_json" | jq -r '.mergeable_state // "unknown"')
+    
+    # Skip draft PRs
+    if [[ "$pr_draft" == "true" ]]; then
+        log_warning "PR $repo_name#$pr_number is a draft, skipping"
         return 2
+    fi
+    
+    # Check mergeable status with more nuanced logic
+    if [[ "$FORCE" != "true" ]]; then
+        if [[ "$pr_mergeable" == "false" ]]; then
+            log_warning "PR $repo_name#$pr_number has merge conflicts, skipping"
+            return 2
+        elif [[ "$pr_mergeable_state" == "dirty" ]]; then
+            log_warning "PR $repo_name#$pr_number has merge conflicts (dirty state), skipping"
+            return 2
+        elif [[ "$pr_mergeable_state" == "blocked" ]]; then
+            log_warning "PR $repo_name#$pr_number is blocked by branch protection rules, skipping"
+            return 2
+        fi
     fi
 
     # Check if approval is required

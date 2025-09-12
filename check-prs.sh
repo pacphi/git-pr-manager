@@ -128,7 +128,7 @@ check_github_prs() {
 
     # Filter and process each open PR
     echo "$prs_json" | jq -c '.[] | select(.state == "open")' | while IFS= read -r pr; do
-        local pr_number pr_title pr_author pr_mergeable pr_checks pr_labels
+        local pr_number pr_title pr_author pr_mergeable pr_labels
 
         pr_number=$(echo "$pr" | jq -r '.number')
         pr_title=$(echo "$pr" | jq -r '.title')
@@ -194,16 +194,22 @@ check_github_prs() {
                 checks_response=$(gh api "repos/$repo_name/commits/$pr_sha/check-runs" 2>/dev/null || echo '{"check_runs": []}')
 
                 if [[ "$checks_response" != '{"check_runs": []}' ]]; then
-                    local total_checks success_checks
+                    local total_checks success_checks pending_checks failed_checks
                     total_checks=$(echo "$checks_response" | jq '.total_count // (.check_runs | length)')
                     success_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "success")] | length')
+                    pending_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == null and .status == "in_progress")] | length')
+                    failed_checks=$(echo "$checks_response" | jq '[.check_runs[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out")] | length')
 
                     if [[ "$total_checks" -eq 0 ]]; then
                         checks_status="none"
+                    elif [[ "$failed_checks" -gt 0 ]]; then
+                        checks_status="failing"
                     elif [[ "$success_checks" -eq "$total_checks" ]]; then
                         checks_status="passing"
+                    elif [[ "$pending_checks" -gt 0 ]]; then
+                        checks_status="pending"
                     else
-                        checks_status="failing"
+                        checks_status="unknown"
                     fi
                 else
                     # No checks found - assume none required
@@ -212,14 +218,62 @@ check_github_prs() {
                 ;;
         esac
 
-        # Determine if PR is ready to merge
+        # Get additional PR merge state information
+        local pr_mergeable_state pr_draft
+        pr_mergeable_state=$(echo "$pr" | jq -r '.mergeable_state // "unknown"')
+        pr_draft=$(echo "$pr" | jq -r '.draft')
+
+        # Determine if PR is ready to merge based on GitHub's own logic
         local ready_to_merge="no"
-        if [[ "$pr_mergeable" == "true" ]] && [[ "$checks_status" == "passing" ]]; then
-            ready_to_merge="yes"
-        elif [[ "$pr_mergeable" == "null" ]] && [[ "$checks_status" == "none" || "$checks_status" == "passing" || "$checks_status" == "unknown" || "$checks_status" == "pending" ]]; then
-            # Handle null mergeable status (GitHub hasn't computed it yet)
-            # Accept various check states for dependabot PRs since GitHub UI shows them as ready
-            ready_to_merge="yes"
+        
+        # Skip draft PRs
+        if [[ "$pr_draft" == "true" ]]; then
+            ready_to_merge="no"
+        # Check if PR has merge conflicts or other blocking issues
+        elif [[ "$pr_mergeable" == "false" ]]; then
+            ready_to_merge="no"
+        # PR is definitely mergeable
+        elif [[ "$pr_mergeable" == "true" ]]; then
+            # Check if checks are failing (blocking condition)
+            if [[ "$checks_status" == "failing" ]]; then
+                ready_to_merge="no"
+            else
+                # Allow merge with passing, pending, none, or unknown checks
+                # This aligns with GitHub UI behavior
+                ready_to_merge="yes"
+            fi
+        # GitHub hasn't computed mergeable status yet (common for recent PRs)
+        elif [[ "$pr_mergeable" == "null" ]]; then
+            # Use mergeable_state as additional signal
+            case "$pr_mergeable_state" in
+                "blocked"|"behind")
+                    ready_to_merge="no"
+                    ;;
+                "dirty")
+                    # Merge conflicts exist
+                    ready_to_merge="no"
+                    ;;
+                "unstable"|"has_hooks")
+                    # Failing checks or pre-receive hooks
+                    if [[ "$checks_status" == "failing" ]]; then
+                        ready_to_merge="no"
+                    else
+                        ready_to_merge="yes"
+                    fi
+                    ;;
+                "clean")
+                    # PR is ready to merge
+                    ready_to_merge="yes"
+                    ;;
+                *)
+                    # For unknown states, be permissive if no failing checks
+                    if [[ "$checks_status" == "failing" ]]; then
+                        ready_to_merge="no"
+                    else
+                        ready_to_merge="yes"
+                    fi
+                    ;;
+            esac
         fi
 
         # Output based on format
