@@ -301,6 +301,13 @@ cd mcp-server && go build -o multi-gitter-pr-a8n-mcp .
 
 This project stands on the shoulders of amazing open-source tools:
 
+**Go Infrastructure:**
+- **[MCP Go SDK](https://github.com/mark3labs/mcp-go)** - Model Context Protocol implementation enabling AI assistant integration
+- **[Go YAML v3](https://gopkg.in/yaml.v3)** - Robust YAML parsing library for configuration handling
+- **[Google UUID](https://github.com/google/uuid)** - Reliable UUID generation utilities
+- **[Testify](https://github.com/stretchr/testify)** - Comprehensive testing framework for Go
+
+**CLI Tools:**
 - **[multi-gitter](https://github.com/lindell/multi-gitter)** - The inspiration for this project's name and approach to bulk repository operations
 - **[yq](https://github.com/mikefarah/yq)** - YAML processor that makes configuration parsing effortless
 - **[jq](https://github.com/jqlang/jq)** - JSON processor for handling API responses with precision
