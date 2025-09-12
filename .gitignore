@@ -45,3 +45,29 @@ config.yaml
 local-config.yaml
 test-config.yaml
 debug-*.yaml
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Go binaries (specific to this project)
+mcp-server/multi-gitter-pr-a8n-mcp
+mcp-server/multi-gitter-mcp
+
+# Go module cache (if locally cached)
+vendor/
+
+# Go coverage files
+*.cover
+coverage.out
+profile.out
+
+# Air live reload tool
+tmp/

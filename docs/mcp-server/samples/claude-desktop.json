@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "multi-gitter-pr-automation": {
+      "command": "./mcp-server/multi-gitter-pr-a8n-mcp",
+      "args": [],
+      "cwd": "."
+    }
+  }
+}

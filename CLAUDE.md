@@ -4,11 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a bash-based tool for automating pull request management across multiple Git repositories. It supports GitHub, GitLab, and Bitbucket, focusing on safely merging dependency updates from trusted bots like dependabot and renovate.
+This is a tool for automating pull request management across multiple Git repositories with two interfaces:
+
+1. **Traditional CLI**: Bash-based scripts with Makefile commands
+2. **AI Assistant Integration**: Go-based MCP (Model Context Protocol) server for natural language interaction
+
+The tool supports GitHub, GitLab, and Bitbucket, focusing on safely merging dependency updates from trusted bots like dependabot and renovate.
 
 ## Architecture
 
-The project consists of core bash scripts orchestrated by a comprehensive Makefile:
+The project has two main components:
+
+### 1. Core CLI Scripts (Traditional Interface)
+
+Bash-based scripts orchestrated by a comprehensive Makefile:
 
 - **`check-prs.sh`** - Scans configured repositories and reports PR status
 - **`merge-prs.sh`** - Merges ready PRs and sends notifications
@@ -17,7 +26,18 @@ The project consists of core bash scripts orchestrated by a comprehensive Makefi
 - **`Makefile`** - Provides convenient command interface with dependency management
 - **`config.yaml`** - YAML configuration file (created from `config.sample` or wizard)
 
-The tool reads repository configurations from YAML and uses REST APIs to interact with Git providers.
+### 2. MCP Server (AI Assistant Interface)
+
+Go-based MCP server for natural language interaction:
+
+- **`mcp-server/main.go`** - MCP server entry point
+- **`mcp-server/server/`** - Tool and resource implementations
+- **`mcp-server/internal/`** - Core business logic (executor, config, types)
+- **`docs/mcp-server/`** - MCP server documentation and IDE setup guides
+
+The MCP server exposes the same underlying functionality through natural language commands, calling the same bash scripts and Makefile targets.
+
+Both interfaces read repository configurations from YAML and use REST APIs to interact with Git providers.
 
 ## Essential Commands
 
@@ -72,14 +92,35 @@ make backup-config     # Backup current configuration
 make restore-config    # Restore from latest backup
 ```
 
+### MCP Server Commands
+
+```bash
+# Build the MCP server
+cd mcp-server
+go build -o multi-gitter-pr-a8n-mcp .
+
+# Then use natural language in your IDE:
+# "Check all pull requests and show me the status"
+# "Merge ready dependabot PRs after showing a dry run"
+# "Validate my configuration and test my notifications"
+# "Show me repository statistics for all configured repos"
+```
+
 ## Dependencies
 
-Required tools (auto-installed by `make install`):
+### CLI Tools (auto-installed by `make install`)
 
 - **yq** - YAML processor for parsing config files
 - **jq** - JSON processor for API responses
 - **curl** - HTTP client for API calls
 - **gh** - GitHub CLI (optional, for enhanced operations)
+
+### MCP Server Dependencies
+
+- **Go 1.19+** - Required for building the MCP server
+- **MCP Go SDK** - Model Context Protocol implementation (`github.com/mark3labs/mcp-go`)
+
+The MCP server dependencies are automatically managed by Go modules (`go.mod` / `go.sum`).
 
 ## Configuration
 
@@ -135,6 +176,8 @@ The setup wizard validates these tokens during repository discovery and shows au
 
 ## Development Notes
 
+### CLI Scripts
+
 - Scripts use `set -euo pipefail` for strict error handling
 - Platform detection supports macOS and Linux with different package managers
 - Color-coded output with consistent logging functions
@@ -142,3 +185,13 @@ The setup wizard validates these tokens during repository discovery and shows au
 - Configuration validation prevents runtime errors
 - Setup wizard includes progress tracking, error handling, and comprehensive validation
 - Backup system automatically preserves existing configurations
+
+### MCP Server
+
+- Built with Go 1.19+ using the `mcp-go` SDK
+- Exposes tools that call underlying Makefile targets and bash scripts
+- Inherits environment variables from parent process (IDE)
+- Provides both tools (actions) and resources (data) to AI assistants
+- Uses structured error handling with proper MCP protocol responses
+- Supports all major IDEs through MCP protocol standardization
+- Documentation includes IDE-specific setup guides for major editors

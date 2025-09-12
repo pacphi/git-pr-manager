@@ -2,7 +2,12 @@
 
 🤖 **Automate pull request management across multiple Git repositories**
 
-Manage PR automation centrally through YAML configuration. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
+Manage PR automation centrally through YAML configuration or natural language commands via AI assistants. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
+
+**Two ways to use:**
+
+- 🖥️ **Command Line**: Traditional make commands and shell scripts
+- 🤖 **AI Assistant**: Natural language via MCP (Model Context Protocol) server in your IDE
 
 ## ✨ Key Benefits
 
@@ -13,10 +18,27 @@ Manage PR automation centrally through YAML configuration. Watch repositories, c
 - 📱 **Notifications** - Slack and email alerts for merged PRs
 - ⚡ **Simple CLI** - Easy-to-use commands for all operations
 - 🖥️ **Cross-Platform** - Works on macOS and Linux with automatic dependency management
+- 🤖 **AI Integration** - Natural language interface via MCP server for IDEs
 
 ## 🚀 Quick Start (5 minutes)
 
-**🎯 Automated Setup (Recommended)**
+**🤖 AI Assistant Setup**
+
+Use natural language commands in your IDE:
+
+```bash
+# 1. Build the MCP server
+cd mcp-server && go build -o multi-gitter-pr-a8n-mcp .
+
+# 2. Follow IDE-specific setup guide
+# See docs/mcp-server/MCP_SETUP.md
+```
+
+Then in your IDE: *"Check all pull requests and merge ready dependabot PRs"*
+
+**📖 Full MCP Setup Guide**: [`docs/mcp-server/MCP_SETUP.md`](docs/mcp-server/MCP_SETUP.md)
+
+**🎯 Command Line Setup (Traditional)**
 
 ```bash
 # 1. Complete automated setup with wizard
@@ -118,6 +140,7 @@ Choose your path:
 | 📚 Guide | 🎯 Purpose | ⏱️ Time |
 |----------|------------|----------|
 | **[📋 Quick Start](docs/QUICKSTART.md)** | Get running in 5 minutes | 5 min |
+| **[🤖 MCP Server Setup](docs/mcp-server/MCP_SETUP.md)** | AI assistant integration | 10 min |
 | **[📖 Reference](docs/REFERENCE.md)** | Complete configuration guide | 15 min |
 | **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** | Fix common issues | As needed |
 | **[📧 Notifications](docs/NOTIFICATIONS.md)** | Setup Slack & email alerts | 10 min |
@@ -153,7 +176,21 @@ make restore-config         # Restore from backup
 make help                   # Show all commands
 ```
 
+**MCP Server Commands**
+
+```bash
+# Build the MCP server
+cd mcp-server && go build -o multi-gitter-pr-a8n-mcp .
+
+# Then use natural language in your IDE:
+# "Check all pull requests across my repositories"
+# "Merge ready dependabot PRs after showing me a dry run"
+# "Validate my configuration and test notifications"
+```
+
 ## 🏗️ Architecture
+
+**Traditional Command Line:**
 
 ```text
 ┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
@@ -168,12 +205,28 @@ make help                   # Show all commands
                        └──────────────┘    └─────────────────┘
 ```
 
-**Core Scripts:**
+**AI Assistant Integration (MCP):**
+
+```text
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   IDE/AI Chat   │───►│  MCP Server  │───►│   Make Commands │
+│ "Check all PRs" │    │   (Go)       │    │  (same scripts) │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌──────────────┐    ┌─────────────────┐
+                       │ Natural Lang │───►│  Tool Results   │
+                       │  Response    │    │   & Status      │
+                       └──────────────┘    └─────────────────┘
+```
+
+**Core Components:**
 
 - **`check-prs.sh`** - Scans repositories, reports PR status
 - **`merge-prs.sh`** - Merges ready PRs, sends notifications
 - **`test-notifications.sh`** - Tests Slack and email setup
 - **`setup-wizard.sh`** - Interactive repository discovery and configuration
+- **`mcp-server/`** - Go-based MCP server for AI assistant integration
 - **`Makefile`** - Convenient command interface
 
 ## 🔐 Authentication Quick Setup
@@ -232,6 +285,7 @@ make help                   # Show all commands
 - **Dependency Updates** - Auto-merge dependabot/renovate PRs
 - **Multi-Repository Management** - Manage dozens of repos from one place
 - **Team Automation** - Reduce manual PR review overhead
+- **AI-Assisted Workflows** - Natural language PR management in your IDE
 - **CI/CD Integration** - Incorporate into deployment pipelines
 
 ## 🤝 Contributing & Support

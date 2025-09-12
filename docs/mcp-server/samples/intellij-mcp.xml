@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MCPConfiguration">
+  <servers>
+    <server name="multi-gitter-pr-automation">
+      <command>./mcp-server/multi-gitter-pr-a8n-mcp</command>
+      <args></args>
+      <cwd>.</cwd>
+    </server>
+  </servers>
+</component>
