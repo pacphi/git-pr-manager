@@ -16,6 +16,27 @@ Manage PR automation centrally through YAML configuration. Watch repositories, c
 
 ## 🚀 Quick Start (5 minutes)
 
+**🎯 Automated Setup (Recommended)**
+
+```bash
+# 1. Complete automated setup with wizard
+make setup-full
+
+# 2. Validate your configuration
+make validate
+
+# 3. Check what PRs are ready
+make check-prs
+
+# 4. See what would be merged (safe!)
+make dry-run
+
+# 5. Actually merge the PRs
+make merge-prs
+```
+
+**⚙️ Manual Setup (Alternative)**
+
 ```bash
 # 1. Install dependencies
 make install
@@ -26,24 +47,27 @@ make setup-config
 # 3. Edit config.yaml to add your repositories
 # (This copies config.sample to config.yaml for you to customize)
 
-# 4. Setup authentication
-make setup
-
-# 5. Check what PRs are ready
-make check-prs
-
-# 6. See what would be merged (safe!)
-make dry-run
-
-# 7. Actually merge the PRs
-make merge-prs
+# 4. Validate and test
+make validate && make check-prs
 ```
 
 **📚 New here?** Start with the **[Quick Start Guide](docs/QUICKSTART.md)** →
 
-## 📋 Example Configuration
+## 📋 Configuration Options
 
-**config.sample** → **config.yaml** - Copy the sample to create your configuration:
+**🎯 Automatic Configuration (Recommended)**
+
+The setup wizard discovers and configures repositories automatically:
+
+```bash
+make setup-wizard      # Interactive repository discovery
+make wizard-preview    # Preview what would be configured
+make wizard-additive   # Add to existing configuration
+```
+
+**⚙️ Manual Configuration**
+
+Copy the sample and edit manually:
 
 ```bash
 make setup-config  # Creates config.yaml from config.sample
@@ -100,22 +124,32 @@ Choose your path:
 
 ## 🛠️ Available Commands
 
-```bash
-# First-time setup
-make setup-config           # Copy config.sample to config.yaml
-make setup                  # Install deps, config, and auth
+**Setup Commands**
 
-# Core commands
+```bash
+make setup-full             # Complete automated setup with wizard
+make setup-wizard           # Interactive repository discovery wizard
+make wizard-preview         # Preview what wizard would configure
+make wizard-additive        # Add repositories to existing config
+make setup-config           # Copy config.sample to config.yaml (manual)
+```
+
+**Core Commands**
+
+```bash
 make check-prs              # Check PR status across repositories
 make dry-run                # Preview what would be merged (safe!)
 make merge-prs              # Actually merge ready PRs
 make watch                  # Monitor continuously (30s refresh)
+```
 
-# Maintenance commands
+**Maintenance Commands**
+
+```bash
 make validate               # Check configuration
 make test                   # Test functionality
-
-# Get help anytime
+make backup-config          # Backup current configuration
+make restore-config         # Restore from backup
 make help                   # Show all commands
 ```
 
@@ -139,6 +173,7 @@ make help                   # Show all commands
 - **`check-prs.sh`** - Scans repositories, reports PR status
 - **`merge-prs.sh`** - Merges ready PRs, sends notifications
 - **`test-notifications.sh`** - Tests Slack and email setup
+- **`setup-wizard.sh`** - Interactive repository discovery and configuration
 - **`Makefile`** - Convenient command interface
 
 ## 🔐 Authentication Quick Setup

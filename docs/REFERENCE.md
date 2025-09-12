@@ -4,12 +4,76 @@ Complete configuration reference and advanced usage patterns.
 
 ## Table of Contents
 
+- [Setup Wizard Reference](#setup-wizard-reference)
 - [Configuration File Reference](#configuration-file-reference)
 - [Environment Variables](#environment-variables)
 - [Command Reference](#command-reference)
 - [Script Reference](#script-reference)
 - [Authentication Guide](#authentication-guide)
 - [Advanced Usage Patterns](#advanced-usage-patterns)
+
+## Setup Wizard Reference
+
+### Wizard Commands
+
+| Command | Description | Options |
+|---------|-------------|---------|
+| `make setup-full` | Complete automated setup | Installs dependencies + runs wizard |
+| `make setup-wizard` | Interactive repository discovery | Default mode |
+| `make wizard-preview` | Preview configuration | `--preview` mode, no changes made |
+| `make wizard-additive` | Add to existing configuration | `--additive` mode |
+
+### Direct Script Usage
+
+```bash
+./setup-wizard.sh [OPTIONS]
+
+Options:
+  -h, --help              Show help message
+  -c, --config FILE       Configuration file (default: config.yaml)
+  -p, --preview           Preview mode - show what would be configured
+  -a, --additive          Add to existing configuration instead of replacing
+  --backup-dir DIR        Directory for configuration backups (default: backups)
+
+Environment Variables:
+  GITHUB_TOKEN            GitHub personal access token
+  GITLAB_TOKEN            GitLab personal access token
+  GITLAB_URL              GitLab instance URL (default: https://gitlab.com)
+  BITBUCKET_USERNAME      Bitbucket username
+  BITBUCKET_APP_PASSWORD  Bitbucket app password
+
+Examples:
+  ./setup-wizard.sh                      # Run interactive wizard
+  ./setup-wizard.sh --preview            # Preview what would be configured
+  ./setup-wizard.sh --additive           # Add repositories to existing config
+  ./setup-wizard.sh -c custom.yaml       # Use custom configuration file
+```
+
+### Wizard Capabilities
+
+**Repository Discovery**:
+- Automatically discovers repositories from authenticated Git providers
+- Supports GitHub, GitLab, and Bitbucket simultaneously
+- Fetches personal repositories, organization/group repositories, and workspace repositories
+
+**Smart Filtering**:
+- Filter by visibility (public, private, internal)
+- Filter by owner type (personal, organization/group/workspace)
+- Filter by activity (last updated: 30/90/365 days)
+- Filter by name patterns (wildcards supported)
+- Custom filters for forks, archived projects, language, etc.
+
+**Interactive Selection**:
+- Choose all repositories for auto-merge
+- Select repositories by provider
+- Interactive repository selection (planned feature)
+- Configure merge strategies per selection
+
+**Safety Features**:
+- Preview mode shows what would be configured without making changes
+- Automatic backup of existing configurations
+- Comprehensive validation of authentication tokens
+- Error handling and progress tracking
 
 ## Configuration File Reference
 
@@ -202,8 +266,12 @@ export OUTPUT_FORMAT="json"             # Output format: table, json
 
 | Command | Description | Example |
 |---------|-------------|---------|
+| `make setup-full` | Complete automated setup with wizard | `make setup-full` |
+| `make setup-wizard` | Interactive repository discovery wizard | `make setup-wizard` |
+| `make wizard-preview` | Preview what wizard would configure | `make wizard-preview` |
+| `make wizard-additive` | Add repositories to existing config | `make wizard-additive` |
 | `make install` | Install dependencies | `make install` |
-| `make setup` | Setup authentication | `make setup` |
+| `make setup-config` | Copy config.sample to config.yaml | `make setup-config` |
 | `make validate` | Validate config file | `make validate` |
 | `make test` | Run functionality tests | `make test` |
 

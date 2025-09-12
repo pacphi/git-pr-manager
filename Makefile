@@ -37,10 +37,18 @@ help: ## Show this help message
 	@echo ""
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(BLUE)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "First-time setup:"
+	@echo "First-time setup (Easy):"
+	@echo "  1. make setup-full                # Complete automated setup with wizard"
+	@echo ""
+	@echo "First-time setup (Manual):"
 	@echo "  1. make setup-config              # Copy config.sample to config.yaml"
 	@echo "  2. Edit config.yaml               # Add your repositories and tokens"
 	@echo "  3. make validate                  # Check your configuration"
+	@echo ""
+	@echo "Configuration wizard:"
+	@echo "  make setup-wizard                 # Interactive repository discovery wizard"
+	@echo "  make wizard-preview               # Preview what would be configured"
+	@echo "  make wizard-additive              # Add repositories to existing config"
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  CONFIG_FILE         Configuration file (default: config.yaml)"
@@ -302,3 +310,24 @@ restore-config: ## Restore configuration from latest backup
 		echo "$(RED)[ERROR]$(NC) No backup files found"; \
 		exit 1; \
 	fi
+
+# Configuration wizard commands
+setup-wizard: ## Run the interactive configuration wizard
+	@echo "$(BLUE)[INFO]$(NC) Starting configuration wizard..."
+	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh
+
+config-wizard: setup-wizard ## Alias for setup-wizard
+
+wizard-preview: ## Run the configuration wizard in preview mode
+	@echo "$(BLUE)[INFO]$(NC) Running configuration wizard in preview mode..."
+	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh --preview
+
+wizard-additive: ## Run the wizard in additive mode (add to existing config)
+	@echo "$(BLUE)[INFO]$(NC) Running configuration wizard in additive mode..."
+	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh --additive
+
+# Enhanced setup with wizard
+setup-full: install setup-config setup-wizard ## Complete setup with dependency installation, config creation, and wizard
+	@echo "$(GREEN)[SUCCESS]$(NC) Full setup completed!"
+	@echo "$(YELLOW)[NEXT]$(NC) Your repositories have been configured automatically"
+	@echo "$(YELLOW)[NEXT]$(NC) Run 'make validate' to verify your configuration"

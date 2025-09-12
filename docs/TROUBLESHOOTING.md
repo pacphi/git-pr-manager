@@ -4,6 +4,7 @@ Common issues and solutions for multi-gitter automation.
 
 ## Table of Contents
 
+- [Quick Fixes](#quick-fixes)
 - [Installation Issues](#installation-issues)
 - [Authentication Problems](#authentication-problems)
 - [Configuration Errors](#configuration-errors)
@@ -11,6 +12,35 @@ Common issues and solutions for multi-gitter automation.
 - [Network and API Issues](#network-and-api-issues)
 - [Notification Problems](#notification-problems)
 - [Debug Mode](#debug-mode)
+
+## Quick Fixes
+
+### Start Fresh with Setup Wizard
+
+If you're experiencing multiple issues, the easiest fix is often to start fresh:
+
+```bash
+# Backup your current config (if you have one)
+make backup-config
+
+# Run the complete setup wizard
+make setup-full
+
+# This will:
+# - Install all dependencies
+# - Validate your authentication tokens
+# - Discover and configure repositories automatically
+# - Generate a working configuration
+```
+
+### Preview Before Making Changes
+
+Always use preview mode when testing configuration changes:
+
+```bash
+make wizard-preview  # See what the wizard would configure
+make dry-run         # See what PRs would be merged
+```
 
 ## Installation Issues
 
