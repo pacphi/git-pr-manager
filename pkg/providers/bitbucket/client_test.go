@@ -182,7 +182,6 @@ func TestProvider_ListPullRequests(t *testing.T) {
 	}))
 	defer server.Close()
 
-
 	config := Config{
 		Username:    "test_user",
 		AppPassword: "test_password",
@@ -221,7 +220,7 @@ func TestProvider_ListPullRequests(t *testing.T) {
 	assert.Equal(t, 1, pr.Number)
 	assert.Equal(t, "Test PR", pr.Title)
 	assert.Equal(t, "Test description", pr.Body)
-	assert.Equal(t, "OPEN", pr.State)
+	assert.Equal(t, common.PRStateOpen, pr.State)
 	assert.Equal(t, "feature-branch", pr.HeadBranch)
 	assert.Equal(t, "main", pr.BaseBranch)
 	assert.Equal(t, "test_user", pr.Author.Login)

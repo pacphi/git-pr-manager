@@ -69,7 +69,7 @@ func TestValidateConfig_MultipleErrors(t *testing.T) {
 			MaxAge:        "invalid",  // Invalid: format
 		},
 		Repositories: map[string][]config.Repository{}, // Invalid: no repositories
-		Auth:         config.Auth{},                     // Invalid: no auth when repos required
+		Auth:         config.Auth{},                    // Invalid: no auth when repos required
 		Behavior: config.Behavior{
 			Concurrency: 0, // Invalid: must be > 0
 		},
@@ -661,9 +661,9 @@ func TestValidateNotifications(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "empty notifications - valid",
+			name:          "empty notifications - valid",
 			notifications: config.Notifications{},
-			expectError: false,
+			expectError:   false,
 		},
 	}
 
@@ -696,8 +696,8 @@ func TestCheckEnvironmentVariables(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name           string
-		cfg            *config.Config
+		name            string
+		cfg             *config.Config
 		expectedMissing []string
 	}{
 		{

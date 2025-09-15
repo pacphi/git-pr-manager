@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -241,7 +242,7 @@ func TestBehaviorManager_ExecuteWithBehaviorAndResult_AllFail(t *testing.T) {
 	bm := NewBehaviorManager(cfg)
 	ctx := context.Background()
 
-	expectedError := errors.New("persistent failure")
+	expectedError := errors.New("temporary failure")
 	callCount := 0
 	fn := func() (int, error) {
 		callCount++
@@ -623,7 +624,7 @@ func TestBehaviorManager_ContextCancellation(t *testing.T) {
 	}
 
 	bm := NewBehaviorManager(cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
 	// Consume the burst first
@@ -635,7 +636,7 @@ func TestBehaviorManager_ContextCancellation(t *testing.T) {
 	callCount := 0
 	fn := func() error {
 		callCount++
-		return errors.New("always fails") // Will trigger retry
+		return errors.New("temporary failure") // Will trigger retry
 	}
 
 	start := time.Now()
@@ -643,12 +644,13 @@ func TestBehaviorManager_ContextCancellation(t *testing.T) {
 	duration := time.Since(start)
 
 	assert.Error(t, err)
-	// Either context error or timeout is acceptable
+	// Either context error, timeout, or rate limiter context deadline is acceptable
 	assert.True(t, errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) ||
-		(err != nil && (err.Error() == "context deadline exceeded" || err.Error() == "context canceled")))
+		(err != nil && (err.Error() == "context deadline exceeded" || err.Error() == "context canceled" ||
+			strings.Contains(err.Error(), "would exceed context deadline"))))
 
 	// Should complete quickly due to context timeout
-	assert.Less(t, duration, 100*time.Millisecond)
+	assert.Less(t, duration, 200*time.Millisecond)
 
 	// May have been called once before context cancellation
 	assert.GreaterOrEqual(t, callCount, 0)

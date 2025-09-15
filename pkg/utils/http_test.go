@@ -419,10 +419,12 @@ func TestHTTPClient_RetryConditions(t *testing.T) {
 		retryCount++
 		if retryCount < 3 {
 			// Return a retryable error
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprintf(w, `{"error": "service temporarily unavailable"}`)
 		} else {
 			// Finally succeed
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, `{"success": true}`)
 		}
@@ -482,9 +484,11 @@ func TestHTTPClient_RetryOnTooManyRequests(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		retryCount++
 		if retryCount < 2 {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests) // 429 - should retry
 			fmt.Fprintf(w, `{"error": "rate limited"}`)
 		} else {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, `{"success": true}`)
 		}
@@ -515,6 +519,7 @@ func TestHTTPClient_WithCustomHeaders(t *testing.T) {
 		assert.Equal(t, "application/vnd.api+json", r.Header.Get("Accept"))
 		assert.Equal(t, "custom-agent/3.0", r.Header.Get("User-Agent"))
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, `{"received": "with headers"}`)
 	}))

@@ -107,24 +107,50 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 		Language:      language,
 		Visibility:    visibility,
 		DefaultBranch: project.DefaultBranch,
-		CreatedAt:     *project.CreatedAt,
-		UpdatedAt:     *project.LastActivityAt,
-		PushedAt:      *project.LastActivityAt,
-		StarCount:     project.StarCount,
-		ForkCount:     project.ForksCount,
-		IsArchived:    project.Archived,
-		IsDisabled:    false, // GitLab doesn't have disabled concept
-		IsFork:        project.ForkedFromProject != nil,
-		IsPrivate:     project.Visibility == gitlab.PrivateVisibility,
-		HasIssues:     project.IssuesAccessLevel != "disabled",
-		HasWiki:       project.WikiAccessLevel != "disabled",
-		Owner: common.User{
-			ID:    strconv.Itoa(project.Owner.ID),
-			Login: project.Owner.Username,
-			Name:  project.Owner.Name,
-			Email: project.Owner.Email,
-			Type:  "User", // Simplified, could be Group
-		},
+		CreatedAt: func() time.Time {
+			if project.CreatedAt != nil {
+				return *project.CreatedAt
+			}
+			return time.Time{}
+		}(),
+		UpdatedAt: func() time.Time {
+			if project.LastActivityAt != nil {
+				return *project.LastActivityAt
+			}
+			return time.Time{}
+		}(),
+		PushedAt: func() time.Time {
+			if project.LastActivityAt != nil {
+				return *project.LastActivityAt
+			}
+			return time.Time{}
+		}(),
+		StarCount:  project.StarCount,
+		ForkCount:  project.ForksCount,
+		IsArchived: project.Archived,
+		IsDisabled: false, // GitLab doesn't have disabled concept
+		IsFork:     project.ForkedFromProject != nil,
+		IsPrivate:  project.Visibility == gitlab.PrivateVisibility,
+		HasIssues:  project.IssuesAccessLevel != "disabled",
+		HasWiki:    project.WikiAccessLevel != "disabled",
+		Owner: func() common.User {
+			if project.Owner != nil {
+				return common.User{
+					ID:    strconv.Itoa(project.Owner.ID),
+					Login: project.Owner.Username,
+					Name:  project.Owner.Name,
+					Email: project.Owner.Email,
+					Type:  "User",
+				}
+			}
+			return common.User{
+				ID:    "0",
+				Login: "unknown",
+				Name:  "Unknown",
+				Email: "",
+				Type:  "User",
+			}
+		}(),
 		CloneURL: project.HTTPURLToRepo,
 		SSHURL:   project.SSHURLToRepo,
 		WebURL:   project.WebURL,
@@ -150,14 +176,40 @@ func (p *Provider) convertBasicMergeRequest(mr *gitlab.BasicMergeRequest) common
 		ID:     strconv.Itoa(mr.IID),
 		Number: mr.IID,
 		Title:  mr.Title,
+		Body:   mr.Description,
 		State:  state,
-		Author: common.User{
-			ID:    strconv.Itoa(mr.Author.ID),
-			Login: mr.Author.Username,
-			Name:  mr.Author.Name,
-		},
-		CreatedAt: *mr.CreatedAt,
-		UpdatedAt: *mr.UpdatedAt,
+		Author: func() common.User {
+			if mr.Author != nil {
+				return common.User{
+					ID:    strconv.Itoa(mr.Author.ID),
+					Login: mr.Author.Username,
+					Name:  mr.Author.Name,
+					Email: "",
+					Type:  "User",
+				}
+			}
+			return common.User{
+				ID:    "0",
+				Login: "unknown",
+				Name:  "Unknown",
+				Email: "",
+				Type:  "User",
+			}
+		}(),
+		HeadSHA: mr.SHA,
+		Labels:  p.convertLabelsFromStrings(mr.Labels),
+		CreatedAt: func() time.Time {
+			if mr.CreatedAt != nil {
+				return *mr.CreatedAt
+			}
+			return time.Time{}
+		}(),
+		UpdatedAt: func() time.Time {
+			if mr.UpdatedAt != nil {
+				return *mr.UpdatedAt
+			}
+			return time.Time{}
+		}(),
 		// BasicMergeRequest has limited fields, so many will be empty
 		BaseBranch: mr.TargetBranch,
 		HeadBranch: mr.SourceBranch,
@@ -206,20 +258,41 @@ func (p *Provider) convertMergeRequest(mr *gitlab.MergeRequest) common.PullReque
 		Draft:      mr.Draft,
 		Mergeable:  mergeable,
 		Locked:     false, // GitLab doesn't have locked concept
-		CreatedAt:  *mr.CreatedAt,
-		UpdatedAt:  *mr.UpdatedAt,
+		CreatedAt:  func() time.Time {
+			if mr.CreatedAt != nil {
+				return *mr.CreatedAt
+			}
+			return time.Time{}
+		}(),
+		UpdatedAt:  func() time.Time {
+			if mr.UpdatedAt != nil {
+				return *mr.UpdatedAt
+			}
+			return time.Time{}
+		}(),
 		MergedAt:   mr.MergedAt,
 		ClosedAt:   mr.ClosedAt,
 		HeadBranch: mr.SourceBranch,
 		BaseBranch: mr.TargetBranch,
 		HeadSHA:    mr.SHA,
-		Author: common.User{
-			ID:    strconv.Itoa(mr.Author.ID),
-			Login: mr.Author.Username,
-			Name:  mr.Author.Name,
-			Email: "",
-			Type:  "User",
-		},
+		Author: func() common.User {
+			if mr.Author != nil {
+				return common.User{
+					ID:    strconv.Itoa(mr.Author.ID),
+					Login: mr.Author.Username,
+					Name:  mr.Author.Name,
+					Email: "",
+					Type:  "User",
+				}
+			}
+			return common.User{
+				ID:    "0",
+				Login: "unknown",
+				Name:  "Unknown",
+				Email: "",
+				Type:  "User",
+			}
+		}(),
 		Labels:   labels,
 		URL:      mr.WebURL,
 		DiffURL:  fmt.Sprintf("%s.diff", mr.WebURL),
@@ -281,4 +354,17 @@ func (p *Provider) IsMergeRequestReady(ctx context.Context, repo common.Reposito
 	_ = name
 
 	return true, "ready to merge", nil
+}
+
+// convertLabelsFromStrings converts string labels to common.Label
+func (p *Provider) convertLabelsFromStrings(labels []string) []common.Label {
+	result := make([]common.Label, 0, len(labels))
+	for _, label := range labels {
+		result = append(result, common.Label{
+			Name:        label,
+			Description: "",
+			Color:       "",
+		})
+	}
+	return result
 }
