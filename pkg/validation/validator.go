@@ -37,7 +37,7 @@ func (v *Validator) ValidateConfig(cfg *config.Config) error {
 	}
 
 	// Validate authentication
-	if err := v.validateAuth(cfg.Auth); err != nil {
+	if err := v.validateAuth(cfg.Auth, cfg.Repositories); err != nil {
 		errors = append(errors, fmt.Sprintf("authentication: %v", err))
 	}
 
@@ -106,7 +106,6 @@ func (v *Validator) validateRepositories(repositories map[string][]config.Reposi
 
 	for provider, repos := range repositories {
 		if len(repos) == 0 {
-			errors = append(errors, fmt.Sprintf("provider '%s' has no repositories", provider))
 			continue
 		}
 
@@ -149,46 +148,74 @@ func (v *Validator) validateRepositories(repositories map[string][]config.Reposi
 }
 
 // validateAuth validates authentication configuration
-func (v *Validator) validateAuth(auth config.Auth) error {
+func (v *Validator) validateAuth(auth config.Auth, repositories map[string][]config.Repository) error {
 	var errors []string
 	hasProvider := false
 
-	// Check GitHub auth
-	if auth.GitHub.Token != "" {
-		hasProvider = true
-		if !v.isValidEnvVarReference(auth.GitHub.Token) && !v.isValidToken(auth.GitHub.Token, "GitHub") {
-			errors = append(errors, "GitHub token appears invalid")
-		}
+	// Helper function to check if a provider has repositories
+	hasRepos := func(provider string) bool {
+		repos, exists := repositories[provider]
+		return exists && len(repos) > 0
 	}
 
-	// Check GitLab auth
-	if auth.GitLab.Token != "" {
-		hasProvider = true
-		if !v.isValidEnvVarReference(auth.GitLab.Token) && !v.isValidToken(auth.GitLab.Token, "GitLab") {
-			errors = append(errors, "GitLab token appears invalid")
-		}
-
-		// Validate URL if provided
-		if auth.GitLab.URL != "" && !v.isValidEnvVarReference(auth.GitLab.URL) {
-			if !strings.HasPrefix(auth.GitLab.URL, "http://") && !strings.HasPrefix(auth.GitLab.URL, "https://") {
-				errors = append(errors, "GitLab URL must start with http:// or https://")
+	// Check GitHub auth - only validate if GitHub repositories are configured
+	if hasRepos("github") {
+		if auth.GitHub.Token != "" {
+			hasProvider = true
+			if !v.isValidEnvVarReference(auth.GitHub.Token) && !v.isValidToken(auth.GitHub.Token, "GitHub") {
+				errors = append(errors, "GitHub token appears invalid")
 			}
+		} else {
+			errors = append(errors, "GitHub token is required when GitHub repositories are configured")
 		}
 	}
 
-	// Check Bitbucket auth
-	if auth.Bitbucket.Username != "" || auth.Bitbucket.AppPassword != "" {
-		hasProvider = true
-		if auth.Bitbucket.Username == "" {
-			errors = append(errors, "Bitbucket username is required when app password is provided")
-		}
-		if auth.Bitbucket.AppPassword == "" {
-			errors = append(errors, "Bitbucket app password is required when username is provided")
+	// Check GitLab auth - only validate if GitLab repositories are configured
+	if hasRepos("gitlab") {
+		if auth.GitLab.Token != "" {
+			hasProvider = true
+			if !v.isValidEnvVarReference(auth.GitLab.Token) && !v.isValidToken(auth.GitLab.Token, "GitLab") {
+				errors = append(errors, "GitLab token appears invalid")
+			}
+
+			// Validate URL if provided
+			if auth.GitLab.URL != "" && !v.isValidEnvVarReference(auth.GitLab.URL) {
+				if !strings.HasPrefix(auth.GitLab.URL, "http://") && !strings.HasPrefix(auth.GitLab.URL, "https://") {
+					errors = append(errors, "GitLab URL must start with http:// or https://")
+				}
+			}
+		} else {
+			errors = append(errors, "GitLab token is required when GitLab repositories are configured")
 		}
 	}
 
-	if !hasProvider {
-		errors = append(errors, "at least one provider must be configured")
+	// Check Bitbucket auth - only validate if Bitbucket repositories are configured
+	if hasRepos("bitbucket") {
+		if auth.Bitbucket.Username != "" || auth.Bitbucket.AppPassword != "" {
+			hasProvider = true
+			if auth.Bitbucket.Username == "" {
+				errors = append(errors, "Bitbucket username is required when app password is provided")
+			}
+			if auth.Bitbucket.AppPassword == "" {
+				errors = append(errors, "Bitbucket app password is required when username is provided")
+			}
+		} else {
+			errors = append(errors, "Bitbucket username and app password are required when Bitbucket repositories are configured")
+		}
+	}
+
+	// Check if we have any repositories configured at all
+	hasAnyRepos := false
+	for _, repos := range repositories {
+		if len(repos) > 0 {
+			hasAnyRepos = true
+			break
+		}
+	}
+
+	// Only require provider authentication if repositories are configured
+	if hasAnyRepos && !hasProvider {
+		errors = append(errors, "at least one provider authentication must be configured when repositories are present")
 	}
 
 	if len(errors) > 0 {
