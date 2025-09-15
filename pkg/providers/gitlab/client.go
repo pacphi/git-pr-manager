@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 	"golang.org/x/time/rate"
 
 	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
@@ -18,7 +18,7 @@ const ProviderName = "gitlab"
 
 // Provider implements the common.Provider interface for GitLab
 type Provider struct {
-	client          *gitlab.Client //nolint:staticcheck // Using xanzy/go-gitlab until migration to gitlab.com/gitlab-org/api/client-go is completed
+	client          *gitlab.Client
 	token           string
 	rateLimiter     *rate.Limiter
 	behaviorManager *utils.BehaviorManager
@@ -41,13 +41,13 @@ func NewProvider(config Config) (*Provider, error) {
 	}
 
 	// Create GitLab client
-	var client *gitlab.Client //nolint:staticcheck // Using xanzy/go-gitlab until migration to gitlab.com/gitlab-org/api/client-go is completed
+	var client *gitlab.Client
 	var err error
 
 	if config.BaseURL != "" {
-		client, err = gitlab.NewClient(config.Token, gitlab.WithBaseURL(config.BaseURL)) //nolint:staticcheck // Using xanzy/go-gitlab until migration to gitlab.com/gitlab-org/api/client-go is completed
+		client, err = gitlab.NewClient(config.Token, gitlab.WithBaseURL(config.BaseURL))
 	} else {
-		client, err = gitlab.NewClient(config.Token) //nolint:staticcheck // Using xanzy/go-gitlab until migration to gitlab.com/gitlab-org/api/client-go is completed
+		client, err = gitlab.NewClient(config.Token)
 	}
 
 	if err != nil {
@@ -205,7 +205,7 @@ func (p *Provider) ListPullRequests(ctx context.Context, repo common.Repository,
 	var allMRs []common.PullRequest
 
 	for {
-		var mrs []*gitlab.MergeRequest
+		var mrs []*gitlab.BasicMergeRequest
 		var resp *gitlab.Response
 		var err error
 
@@ -218,7 +218,7 @@ func (p *Provider) ListPullRequests(ctx context.Context, repo common.Repository,
 		}
 
 		for _, mr := range mrs {
-			convertedMR := p.convertMergeRequest(mr)
+			convertedMR := p.convertBasicMergeRequest(mr)
 			allMRs = append(allMRs, convertedMR)
 		}
 

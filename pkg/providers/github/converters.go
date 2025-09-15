@@ -25,6 +25,7 @@ func (p *Provider) convertRepository(repo *github.Repository) common.Repository 
 		ID:            strconv.FormatInt(repo.GetID(), 10),
 		Name:          repo.GetName(),
 		FullName:      repo.GetFullName(),
+		Provider:      ProviderName,
 		Description:   repo.GetDescription(),
 		Language:      repo.GetLanguage(),
 		Visibility:    visibility,

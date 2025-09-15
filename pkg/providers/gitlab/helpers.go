@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 
 	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
 )
@@ -116,8 +116,8 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 		IsDisabled:    false, // GitLab doesn't have disabled concept
 		IsFork:        project.ForkedFromProject != nil,
 		IsPrivate:     project.Visibility == gitlab.PrivateVisibility,
-		HasIssues:     project.IssuesEnabled,
-		HasWiki:       project.WikiEnabled,
+		HasIssues:     project.IssuesAccessLevel != "disabled",
+		HasWiki:       project.WikiAccessLevel != "disabled",
 		Owner: common.User{
 			ID:    strconv.Itoa(project.Owner.ID),
 			Login: project.Owner.Username,
@@ -128,7 +128,40 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 		CloneURL: project.HTTPURLToRepo,
 		SSHURL:   project.SSHURLToRepo,
 		WebURL:   project.WebURL,
-		Topics:   project.TagList,
+		Topics:   project.Topics,
+	}
+}
+
+// convertBasicMergeRequest converts a GitLab basic merge request to common pull request format
+func (p *Provider) convertBasicMergeRequest(mr *gitlab.BasicMergeRequest) common.PullRequest {
+	// Convert BasicMergeRequest to the common format
+	// Note: BasicMergeRequest has limited fields compared to full MergeRequest
+	var state common.PRState
+	switch mr.State {
+	case "merged":
+		state = common.PRStateMerged
+	case "closed":
+		state = common.PRStateClosed
+	default:
+		state = common.PRStateOpen
+	}
+
+	return common.PullRequest{
+		ID:     strconv.Itoa(mr.IID),
+		Number: mr.IID,
+		Title:  mr.Title,
+		State:  state,
+		Author: common.User{
+			ID:    strconv.Itoa(mr.Author.ID),
+			Login: mr.Author.Username,
+			Name:  mr.Author.Name,
+		},
+		CreatedAt: *mr.CreatedAt,
+		UpdatedAt: *mr.UpdatedAt,
+		// BasicMergeRequest has limited fields, so many will be empty
+		BaseBranch: mr.TargetBranch,
+		HeadBranch: mr.SourceBranch,
+		URL:        mr.WebURL,
 	}
 }
 
@@ -170,7 +203,7 @@ func (p *Provider) convertMergeRequest(mr *gitlab.MergeRequest) common.PullReque
 		Title:      mr.Title,
 		Body:       mr.Description,
 		State:      state,
-		Draft:      mr.WorkInProgress,
+		Draft:      mr.Draft,
 		Mergeable:  mergeable,
 		Locked:     false, // GitLab doesn't have locked concept
 		CreatedAt:  *mr.CreatedAt,

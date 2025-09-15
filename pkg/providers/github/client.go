@@ -56,12 +56,11 @@ func NewProvider(config Config) (*Provider, error) {
 
 	// Set custom base URL if provided (for GitHub Enterprise)
 	if config.BaseURL != "" {
-		client, err := client.WithEnterpriseURLs(config.BaseURL, config.BaseURL)
+		updatedClient, err := client.WithEnterpriseURLs(config.BaseURL, config.BaseURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to set GitHub base URL: %w", err)
 		}
-		// Update the client variable (note: this shadows the outer client)
-		_ = client
+		client = updatedClient
 	}
 
 	// Configure rate limiting

@@ -39,6 +39,9 @@ func TestFactory_CreateProviders(t *testing.T) {
 						Burst:             10,
 					},
 				},
+				Repositories: map[string][]config.Repository{
+					"github": {{Name: "owner/repo"}},
+				},
 			},
 			expectError:   false,
 			expectedCount: 1,
@@ -58,6 +61,9 @@ func TestFactory_CreateProviders(t *testing.T) {
 						RequestsPerSecond: 5.0,
 						Burst:             10,
 					},
+				},
+				Repositories: map[string][]config.Repository{
+					"gitlab": {{Name: "owner/repo"}},
 				},
 			},
 			expectError:   false,
@@ -79,6 +85,9 @@ func TestFactory_CreateProviders(t *testing.T) {
 						RequestsPerSecond: 5.0,
 						Burst:             10,
 					},
+				},
+				Repositories: map[string][]config.Repository{
+					"bitbucket": {{Name: "owner/repo"}},
 				},
 			},
 			expectError:   false,
@@ -105,6 +114,11 @@ func TestFactory_CreateProviders(t *testing.T) {
 						RequestsPerSecond: 5.0,
 						Burst:             10,
 					},
+				},
+				Repositories: map[string][]config.Repository{
+					"github": {{Name: "owner/github-repo"}},
+					"gitlab": {{Name: "owner/gitlab-repo"}},
+					"bitbucket": {{Name: "owner/bitbucket-repo"}},
 				},
 			},
 			expectError:   false,
@@ -679,6 +693,11 @@ func TestFactory_Integration(t *testing.T) {
 					RequestsPerSecond: 5.0,
 					Burst:             10,
 				},
+			},
+			Repositories: map[string][]config.Repository{
+				"github": {{Name: "owner/github-repo"}},
+				"gitlab": {{Name: "owner/gitlab-repo"}},
+				"bitbucket": {{Name: "owner/bitbucket-repo"}},
 			},
 		}
 
