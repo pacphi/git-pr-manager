@@ -218,7 +218,7 @@ deadcode:
 gitleaks:
 	@echo "${BLUE}Running gitleaks secret scanning...${NC}"
 	@if command -v gitleaks >/dev/null 2>&1; then \
-		gitleaks dir .; \
+		gitleaks dir . --verbose; \
 	else \
 		echo "${YELLOW}gitleaks not installed. Install with:${NC}"; \
 		if command -v brew >/dev/null 2>&1; then \
