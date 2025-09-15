@@ -731,12 +731,12 @@ func TestMergeResult(t *testing.T) {
 // TestExecutor_BranchDeletion tests the branch deletion configuration precedence
 func TestExecutor_BranchDeletion(t *testing.T) {
 	tests := []struct {
-		name                   string
-		cliFlag                bool
-		repoConfig             bool
-		globalConfig           bool
-		expectedBranchDeleted  bool
-		description            string
+		name                  string
+		cliFlag               bool
+		repoConfig            bool
+		globalConfig          bool
+		expectedBranchDeleted bool
+		description           string
 	}{
 		{
 			name:                  "CLI flag true overrides all",
