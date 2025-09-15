@@ -310,9 +310,6 @@ git-pr-cli --version
 
 # Test basic functionality
 git-pr-cli --help
-
-# Check dependencies (optional)
-git-pr-cli test --dependencies
 ```
 
 ### Validate Configuration

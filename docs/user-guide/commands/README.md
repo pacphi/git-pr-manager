@@ -29,10 +29,9 @@ These flags are available for all commands:
 - **[setup](setup.md)** - Set up Git PR automation configuration
 - **[validate](validate.md)** - Validate configuration and connectivity
 
-### Information & Testing
+### Information
 
 - **[stats](stats.md)** - Show repository and PR statistics
-- **[test](test.md)** - Test system functionality and integrations
 
 ### Utility
 
@@ -73,7 +72,6 @@ git-pr-cli stats --detailed
 
 - `setup wizard` - Initial configuration
 - `validate` - Verify setup
-- `test` - Test integrations
 
 ### **Monitoring**
 

@@ -404,7 +404,6 @@ git-pr-cli validate --check-repos
 
 ### Notification Failures
 
-- Test notifications with `git-pr-cli test --notifications`
 - Verify webhook URLs and email settings
 - Check network connectivity
 

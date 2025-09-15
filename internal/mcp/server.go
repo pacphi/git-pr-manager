@@ -92,12 +92,6 @@ func (s *MCPServer) registerTools() {
 		mcp.WithDescription("Get detailed repository statistics"),
 	)
 	s.server.AddTool(statsTool, s.handleStatsTool)
-
-	// Test notifications tool
-	testTool := mcp.NewTool("test_notifications",
-		mcp.WithDescription("Test Slack and email notification setup"),
-	)
-	s.server.AddTool(testTool, s.handleTestNotificationsTool)
 }
 
 // registerResources registers all available resources with the MCP server
@@ -204,17 +198,6 @@ func (s *MCPServer) handleStatsTool(ctx context.Context, request mcp.CallToolReq
 	return mcp.NewToolResultText(result), nil
 }
 
-func (s *MCPServer) handleTestNotificationsTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args, ok := request.Params.Arguments.(map[string]interface{})
-	if !ok {
-		args = make(map[string]interface{})
-	}
-	result, err := s.executeTestNotifications(args)
-	if err != nil {
-		return nil, err
-	}
-	return mcp.NewToolResultText(result), nil
-}
 
 // Resource handlers - these match the mark3labs/mcp-go resource handler signature
 func (s *MCPServer) handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
@@ -414,22 +397,6 @@ func (s *MCPServer) executeStats(args map[string]interface{}) (string, error) {
 	return s.executeCommand(cmd, []string{})
 }
 
-func (s *MCPServer) executeTestNotifications(args map[string]interface{}) (string, error) {
-	cmd := commands.NewTestCommand()
-
-	if slack, ok := args["slack"].(bool); ok && slack {
-		if err := cmd.Flags().Set("slack", "true"); err != nil {
-			return "", fmt.Errorf("failed to set slack flag: %w", err)
-		}
-	}
-	if email, ok := args["email"].(bool); ok && email {
-		if err := cmd.Flags().Set("email", "true"); err != nil {
-			return "", fmt.Errorf("failed to set email flag: %w", err)
-		}
-	}
-
-	return s.executeCommand(cmd, []string{})
-}
 
 func (s *MCPServer) executeCommand(cmd *cobra.Command, args []string) (string, error) {
 	// Capture command output

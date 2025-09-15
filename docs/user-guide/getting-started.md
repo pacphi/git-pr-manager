@@ -167,12 +167,6 @@ git-pr-cli setup preview
 
 ## Testing and Validation
 
-### Test Notifications
-
-```bash
-git-pr-cli test --notifications
-```
-
 ### Validate Specific Provider
 
 ```bash

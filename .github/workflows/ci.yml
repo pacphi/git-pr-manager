@@ -143,4 +143,3 @@ jobs:
         ./git-pr-cli validate --help
         ./git-pr-cli stats --help
         ./git-pr-cli watch --help
-        ./git-pr-cli test --help

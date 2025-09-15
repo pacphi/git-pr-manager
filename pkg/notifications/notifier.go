@@ -82,30 +82,6 @@ func (m *Manager) SendMergeResults(ctx context.Context, results []merge.MergeRes
 	return nil
 }
 
-// SendTestMessage sends test messages to all configured notifiers
-func (m *Manager) SendTestMessage(ctx context.Context) error {
-	if len(m.notifiers) == 0 {
-		return fmt.Errorf("no notifiers configured")
-	}
-
-	var errors []error
-
-	for i, notifier := range m.notifiers {
-		if err := notifier.SendTestMessage(ctx); err != nil {
-			m.logger.WithError(err).Errorf("Failed to send test message via notifier %d", i)
-			errors = append(errors, fmt.Errorf("notifier %d: %w", i, err))
-		} else {
-			m.logger.Infof("Successfully sent test message via notifier %d", i)
-		}
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to send test notifications: %v", errors)
-	}
-
-	return nil
-}
-
 // SendPRSummary sends PR summary to all configured notifiers
 func (m *Manager) SendPRSummary(ctx context.Context, repositories []common.Repository, totalPRs, readyPRs int) error {
 	if len(m.notifiers) == 0 {

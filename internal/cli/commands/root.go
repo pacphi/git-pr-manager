@@ -66,7 +66,6 @@ Commit: %s
 	rootCmd.AddCommand(NewValidateCommand())
 	rootCmd.AddCommand(NewStatsCommand())
 	rootCmd.AddCommand(NewWatchCommand())
-	rootCmd.AddCommand(NewTestCommand())
 	rootCmd.AddCommand(NewInfoCommand())
 
 	return rootCmd
