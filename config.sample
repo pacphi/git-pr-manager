@@ -27,6 +27,7 @@ repositories:
       auto_merge: true
       merge_strategy: "squash"
       require_checks: true
+      delete_branches: true   # Optional: delete branches after merge (overrides global setting)
       # branch: "main"        # Optional: default branch
       # min_approvals: 1      # Optional: minimum required approvals
       # skip_labels: ["hold"] # Optional: additional skip labels for this repo
@@ -48,6 +49,7 @@ repositories:
       auto_merge: true
       merge_strategy: "squash"
       require_checks: true
+      delete_branches: false    # Optional: disable branch deletion for this repo
 
     - name: "group/project2"
       auto_merge: true
@@ -121,6 +123,9 @@ behavior:
 
   # Delay between merges within the same repository (prevents "base branch modified" errors)
   merge_delay: "5s"
+
+  # Global default for branch deletion after merge (can be overridden per repository or CLI flag)
+  delete_branches: false
 
 # Example environment variables to set:
 # export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"

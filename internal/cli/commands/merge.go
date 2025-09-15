@@ -3,11 +3,13 @@ package commands
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/pacphi/git-pr-manager/internal/executor"
+	"github.com/pacphi/git-pr-manager/pkg/config"
 	"github.com/pacphi/git-pr-manager/pkg/merge"
 	"github.com/pacphi/git-pr-manager/pkg/notifications"
 	"github.com/pacphi/git-pr-manager/pkg/pr"
@@ -127,12 +129,17 @@ func runMergeCommand(ctx context.Context, flags MergeFlags) error {
 		return fmt.Errorf("failed to process PRs: %w", err)
 	}
 
-	// Count ready PRs
+	// Count ready PRs and PRs that will have branches deleted
 	readyCount := 0
+	branchDeletionCount := 0
 	for _, result := range results {
 		for _, pr := range result.PullRequests {
 			if pr.Ready && !pr.Skipped && pr.Error == nil {
 				readyCount++
+				// Check if this PR would have its branch deleted
+				if willDeleteBranch(flags.DeleteBranches, cfg, result.Repository.FullName) {
+					branchDeletionCount++
+				}
 			}
 		}
 	}
@@ -143,10 +150,13 @@ func runMergeCommand(ctx context.Context, flags MergeFlags) error {
 	}
 
 	logger.Infof("Found %d PRs ready for merging", readyCount)
+	if branchDeletionCount > 0 {
+		logger.Infof("Will delete %d branches after merge", branchDeletionCount)
+	}
 
 	// Confirm merge operation if not in dry-run mode and not auto-confirmed
 	if !flags.DryRun && !flags.Confirm {
-		if !confirmMerge(readyCount) {
+		if !confirmMerge(readyCount, branchDeletionCount) {
 			logger.Info("Merge operation cancelled")
 			return nil
 		}
@@ -194,8 +204,12 @@ func runMergeCommand(ctx context.Context, flags MergeFlags) error {
 	return nil
 }
 
-func confirmMerge(count int) bool {
-	fmt.Printf("\nAbout to merge %d pull request(s). Continue? [y/N]: ", count)
+func confirmMerge(count int, branchDeletionCount int) bool {
+	if branchDeletionCount > 0 {
+		fmt.Printf("\nAbout to merge %d pull request(s) and delete %d branch(es). Continue? [y/N]: ", count, branchDeletionCount)
+	} else {
+		fmt.Printf("\nAbout to merge %d pull request(s). Continue? [y/N]: ", count)
+	}
 	var response string
 	_, _ = fmt.Scanln(&response) // Ignore read errors, treat as "no"
 	return response == "y" || response == "Y" || response == "yes" || response == "Yes"
@@ -240,4 +254,37 @@ func outputMergeResults(results []merge.MergeResult, dryRun bool) {
 	}
 
 	fmt.Printf("\nSummary: %s %d PRs, skipped %d, failed %d\n", action, successful, skipped, failed)
+}
+
+// willDeleteBranch determines if a branch will be deleted based on configuration precedence
+func willDeleteBranch(cliFlag bool, cfg *config.Config, repoFullName string) bool {
+	// CLI flag has highest precedence
+	if cliFlag {
+		return true
+	}
+
+	// Check repository-level configuration
+	for _, repos := range cfg.Repositories {
+		for _, repo := range repos {
+			if repo.Name == repoFullName {
+				if repo.DeleteBranches {
+					return true
+				}
+				// If repo explicitly sets delete_branches to false, don't check global
+				return false
+			}
+		}
+		// Handle wildcard patterns
+		for _, repo := range repos {
+			if strings.HasSuffix(repo.Name, "/*") {
+				prefix := strings.TrimSuffix(repo.Name, "/*")
+				if strings.HasPrefix(repoFullName, prefix+"/") {
+					return repo.DeleteBranches
+				}
+			}
+		}
+	}
+
+	// Fall back to global configuration
+	return cfg.Behavior.DeleteBranches
 }

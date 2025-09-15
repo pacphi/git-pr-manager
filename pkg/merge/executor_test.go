@@ -727,3 +727,187 @@ func TestMergeResult(t *testing.T) {
 	assert.False(t, result.Skipped)
 	assert.Equal(t, "successfully merged", result.Reason)
 }
+
+// TestExecutor_BranchDeletion tests the branch deletion configuration precedence
+func TestExecutor_BranchDeletion(t *testing.T) {
+	tests := []struct {
+		name                   string
+		cliFlag                bool
+		repoConfig             bool
+		globalConfig           bool
+		expectedBranchDeleted  bool
+		description            string
+	}{
+		{
+			name:                  "CLI flag true overrides all",
+			cliFlag:               true,
+			repoConfig:            false,
+			globalConfig:          false,
+			expectedBranchDeleted: true,
+			description:           "CLI flag should have highest precedence",
+		},
+		{
+			name:                  "Repo config true with CLI false",
+			cliFlag:               false,
+			repoConfig:            true,
+			globalConfig:          false,
+			expectedBranchDeleted: true,
+			description:           "Repository config should override global config",
+		},
+		{
+			name:                  "Global config true with CLI and repo false",
+			cliFlag:               false,
+			repoConfig:            false,
+			globalConfig:          true,
+			expectedBranchDeleted: true,
+			description:           "Global config should be used when others are false",
+		},
+		{
+			name:                  "All false should not delete branches",
+			cliFlag:               false,
+			repoConfig:            false,
+			globalConfig:          false,
+			expectedBranchDeleted: false,
+			description:           "Default behavior should be no branch deletion",
+		},
+		{
+			name:                  "Repo config false with global true falls back to global",
+			cliFlag:               false,
+			repoConfig:            false,
+			globalConfig:          true,
+			expectedBranchDeleted: true,
+			description:           "Repo false (default) should fall back to global true",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock provider
+			mockProvider := &MockProvider{}
+			mockProvider.On("GetProviderName").Return("github")
+			mockProvider.On("MergePullRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+			// Create test configuration
+			config := createTestConfig()
+			config.Behavior.DeleteBranches = tt.globalConfig
+			config.Repositories["github"][0].DeleteBranches = tt.repoConfig
+
+			executor := NewExecutor(map[string]common.Provider{
+				"github": mockProvider,
+			}, config)
+
+			// Create test data
+			repo := createTestRepository()
+			pullRequest := createTestPullRequest(123, "Test PR")
+
+			mergeOpts := MergeOptions{
+				DryRun:         false,
+				DeleteBranches: tt.cliFlag,
+			}
+
+			// Execute merge
+			result := executor.mergePR(context.Background(), mockProvider, repo, pullRequest, mergeOpts)
+
+			// Verify result
+			assert.True(t, result.Success, "Merge should succeed")
+			assert.Equal(t, tt.expectedBranchDeleted, result.BranchDeleted, tt.description)
+
+			mockProvider.AssertExpectations(t)
+		})
+	}
+}
+
+// TestExecutor_BranchDeletionSafetyChecks tests the safety checks for branch deletion
+func TestExecutor_BranchDeletionSafetyChecks(t *testing.T) {
+	tests := []struct {
+		name           string
+		repoIsFork     bool
+		branchName     string
+		baseBranch     string
+		expectedSafe   bool
+		expectedReason string
+	}{
+		{
+			name:           "Fork repository should not delete branches",
+			repoIsFork:     true,
+			branchName:     "feature/test",
+			baseBranch:     "main",
+			expectedSafe:   false,
+			expectedReason: "cannot delete branch from a fork repository",
+		},
+		{
+			name:           "Protected branch main should not be deleted",
+			repoIsFork:     false,
+			branchName:     "main",
+			baseBranch:     "develop",
+			expectedSafe:   false,
+			expectedReason: "branch 'main' appears to be a protected branch",
+		},
+		{
+			name:           "Protected branch master should not be deleted",
+			repoIsFork:     false,
+			branchName:     "master",
+			baseBranch:     "develop",
+			expectedSafe:   false,
+			expectedReason: "branch 'master' appears to be a protected branch",
+		},
+		{
+			name:           "Release prefix should not be deleted",
+			repoIsFork:     false,
+			branchName:     "release/v1.0.0",
+			baseBranch:     "main",
+			expectedSafe:   false,
+			expectedReason: "branch 'release/v1.0.0' starts with protected prefix 'release/'",
+		},
+		{
+			name:           "Same branch as base should not be deleted",
+			repoIsFork:     false,
+			branchName:     "main",
+			baseBranch:     "main",
+			expectedSafe:   false,
+			expectedReason: "cannot delete branch that is the same as the base branch",
+		},
+		{
+			name:           "Short branch name should not be deleted",
+			repoIsFork:     false,
+			branchName:     "ab",
+			baseBranch:     "main",
+			expectedSafe:   false,
+			expectedReason: "branch name 'ab' is too short and may be protected",
+		},
+		{
+			name:           "Safe feature branch should be deleted",
+			repoIsFork:     false,
+			branchName:     "feature/add-new-feature",
+			baseBranch:     "main",
+			expectedSafe:   true,
+			expectedReason: "safe to delete",
+		},
+		{
+			name:           "Safe dependabot branch should be deleted",
+			repoIsFork:     false,
+			branchName:     "dependabot/npm_and_yarn/lodash-4.17.21",
+			baseBranch:     "main",
+			expectedSafe:   true,
+			expectedReason: "safe to delete",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			executor := NewExecutor(map[string]common.Provider{}, createTestConfig())
+
+			repo := createTestRepository()
+			repo.IsFork = tt.repoIsFork
+
+			pullRequest := createTestPullRequest(123, "Test PR")
+			pullRequest.HeadBranch = tt.branchName
+			pullRequest.BaseBranch = tt.baseBranch
+
+			safe, reason := executor.shouldDeleteBranch(repo, pullRequest)
+
+			assert.Equal(t, tt.expectedSafe, safe, "Safety check result should match expected")
+			assert.Contains(t, reason, tt.expectedReason, "Reason should contain expected text")
+		})
+	}
+}

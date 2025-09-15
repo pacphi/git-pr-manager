@@ -211,12 +211,30 @@ func (e *Executor) mergePR(ctx context.Context, provider common.Provider, repo c
 	result.MergeMethod = string(mergeMethod)
 
 	// Determine if branches should be deleted (precedence: CLI flag > repo config > global config > false)
-	deleteBranches := opts.DeleteBranches
-	if !deleteBranches && repoConfig.DeleteBranches {
+	deleteBranches := false
+
+	// CLI flag has highest precedence
+	if opts.DeleteBranches {
 		deleteBranches = true
+	} else {
+		// Check repository-level configuration
+		if repoConfig.DeleteBranches {
+			deleteBranches = true
+		} else {
+			// Only fall back to global config if repo config is not explicitly set
+			// Note: In YAML, boolean fields default to false, so we treat false as "not set" in this context
+			// This behavior could be enhanced with a pointer to distinguish between explicit false and unset
+			deleteBranches = e.config.Behavior.DeleteBranches
+		}
 	}
-	if !deleteBranches && e.config.Behavior.DeleteBranches {
-		deleteBranches = true
+
+	// Apply safety checks for branch deletion
+	if deleteBranches {
+		safeToDelete, reason := e.shouldDeleteBranch(repo, pr)
+		if !safeToDelete {
+			deleteBranches = false
+			logger.Warnf("Skipping branch deletion: %s", reason)
+		}
 	}
 
 	// Prepare merge options
@@ -375,4 +393,40 @@ func (e *Executor) ValidateMergeability(ctx context.Context, results []pr.Proces
 	}
 
 	return nil
+}
+
+// shouldDeleteBranch performs safety checks to determine if a branch should be deleted
+func (e *Executor) shouldDeleteBranch(repo common.Repository, pr common.PullRequest) (bool, string) {
+	// Check if the repository is a fork - don't delete branches from forks
+	if repo.IsFork {
+		return false, "cannot delete branch from a fork repository"
+	}
+
+	// Check if the head branch is the same as the base branch (shouldn't happen, but safety check)
+	if pr.HeadBranch == pr.BaseBranch {
+		return false, "cannot delete branch that is the same as the base branch"
+	}
+
+	// Check if the head branch matches common protected branch patterns
+	protectedPatterns := []string{"main", "master", "develop", "development", "staging", "production", "release"}
+	for _, pattern := range protectedPatterns {
+		if strings.EqualFold(pr.HeadBranch, pattern) {
+			return false, fmt.Sprintf("branch '%s' appears to be a protected branch", pr.HeadBranch)
+		}
+	}
+
+	// Check if the head branch starts with protected prefixes
+	protectedPrefixes := []string{"release/", "hotfix/", "main/", "master/"}
+	for _, prefix := range protectedPrefixes {
+		if strings.HasPrefix(strings.ToLower(pr.HeadBranch), prefix) {
+			return false, fmt.Sprintf("branch '%s' starts with protected prefix '%s'", pr.HeadBranch, prefix)
+		}
+	}
+
+	// Check if the branch name is too short (likely a protected branch)
+	if len(pr.HeadBranch) <= 2 {
+		return false, fmt.Sprintf("branch name '%s' is too short and may be protected", pr.HeadBranch)
+	}
+
+	return true, "safe to delete"
 }
