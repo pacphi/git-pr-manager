@@ -198,7 +198,6 @@ func (s *MCPServer) handleStatsTool(ctx context.Context, request mcp.CallToolReq
 	return mcp.NewToolResultText(result), nil
 }
 
-
 // Resource handlers - these match the mark3labs/mcp-go resource handler signature
 func (s *MCPServer) handleConfigResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	content, err := s.readConfigResource()
@@ -396,7 +395,6 @@ func (s *MCPServer) executeStats(args map[string]interface{}) (string, error) {
 
 	return s.executeCommand(cmd, []string{})
 }
-
 
 func (s *MCPServer) executeCommand(cmd *cobra.Command, args []string) (string, error) {
 	// Capture command output
