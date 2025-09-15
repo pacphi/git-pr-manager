@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/config"
 )
 
 func TestNewBehaviorManager(t *testing.T) {

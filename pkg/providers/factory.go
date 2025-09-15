@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/bitbucket"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/github"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/gitlab"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/providers/bitbucket"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/providers/github"
+	"github.com/pacphi/git-pr-manager/pkg/providers/gitlab"
 )
 
 // Factory creates provider instances based on configuration

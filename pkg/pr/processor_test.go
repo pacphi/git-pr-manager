@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // MockProvider implements common.Provider for testing

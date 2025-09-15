@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/go-github/v57/github"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // convertRepository converts a GitHub repository to common.Repository

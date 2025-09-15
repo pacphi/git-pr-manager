@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // handleBitbucketError converts Bitbucket API errors to common provider errors

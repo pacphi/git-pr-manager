@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/internal/executor"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/internal/executor"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // InfoFlags contains flags for the info command

@@ -12,10 +12,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/pr"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/providers"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // WatchFlags contains flags for the watch command

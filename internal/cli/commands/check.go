@@ -12,11 +12,11 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/internal/executor"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/notifications"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/pr"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/internal/executor"
+	"github.com/pacphi/git-pr-manager/pkg/notifications"
+	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // CheckFlags contains flags for the check command

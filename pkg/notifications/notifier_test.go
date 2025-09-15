@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/merge"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/merge"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // MockNotifier is a mock implementation of the Notifier interface

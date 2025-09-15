@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-github/v57/github"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // handleGitHubError converts GitHub API errors to common provider errors

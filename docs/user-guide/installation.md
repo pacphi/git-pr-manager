@@ -6,14 +6,14 @@ Git PR CLI is a cross-platform Go-based tool for automating pull request managem
 
 ### Pre-built Binaries (Recommended)
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/cphillipson/multi-gitter-pr-automation/releases):
+Download the latest release for your platform from [GitHub Releases](https://github.com/pacphi/git-pr-manager/releases):
 
 #### macOS
 
 **Apple Silicon:**
 
 ```bash
-curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-darwin-arm64
+curl -L -o git-pr-cli https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-darwin-arm64
 chmod +x git-pr-cli
 sudo mv git-pr-cli /usr/local/bin/
 ```
@@ -21,7 +21,7 @@ sudo mv git-pr-cli /usr/local/bin/
 **Intel:**
 
 ```bash
-curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-darwin-amd64
+curl -L -o git-pr-cli https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-darwin-amd64
 chmod +x git-pr-cli
 sudo mv git-pr-cli /usr/local/bin/
 ```
@@ -31,7 +31,7 @@ sudo mv git-pr-cli /usr/local/bin/
 **x86_64 (Intel/AMD):**
 
 ```bash
-curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-linux-amd64
+curl -L -o git-pr-cli https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-linux-amd64
 chmod +x git-pr-cli
 sudo mv git-pr-cli /usr/local/bin/
 ```
@@ -39,7 +39,7 @@ sudo mv git-pr-cli /usr/local/bin/
 **ARM64:**
 
 ```bash
-curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-linux-arm64
+curl -L -o git-pr-cli https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-linux-arm64
 chmod +x git-pr-cli
 sudo mv git-pr-cli /usr/local/bin/
 ```
@@ -50,7 +50,7 @@ sudo mv git-pr-cli /usr/local/bin/
 
 ```powershell
 # Download to current directory
-Invoke-WebRequest -Uri "https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-windows-amd64.exe" -OutFile "git-pr-cli.exe"
+Invoke-WebRequest -Uri "https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-windows-amd64.exe" -OutFile "git-pr-cli.exe"
 
 # Move to PATH (optional)
 Move-Item -Path "git-pr-cli.exe" -Destination "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\git-pr-cli.exe"
@@ -59,7 +59,7 @@ Move-Item -Path "git-pr-cli.exe" -Destination "$env:USERPROFILE\AppData\Local\Mi
 **Command Prompt:**
 
 ```cmd
-curl -L -o git-pr-cli.exe https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-windows-amd64.exe
+curl -L -o git-pr-cli.exe https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-windows-amd64.exe
 ```
 
 ### Build from Source
@@ -74,8 +74,8 @@ If pre-built binaries aren't available for your platform:
 
 ```bash
 # Clone repository
-git clone https://github.com/cphillipson/multi-gitter-pr-automation.git
-cd multi-gitter-pr-automation
+git clone https://github.com/pacphi/git-pr-manager.git
+cd git-pr-manager
 
 # Build with Make (recommended)
 make build

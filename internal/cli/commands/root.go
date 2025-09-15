@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // GlobalFlags contains global command line flags

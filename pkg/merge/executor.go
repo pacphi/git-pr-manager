@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/pr"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // Executor handles PR merging operations

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/providers"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // Wizard provides interactive configuration setup

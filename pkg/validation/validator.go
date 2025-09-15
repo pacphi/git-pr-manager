@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // Validator provides configuration validation functionality

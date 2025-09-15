@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/internal/executor"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/validation"
+	"github.com/pacphi/git-pr-manager/internal/executor"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/providers"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/validation"
 )
 
 // ValidateFlags contains flags for the validate command

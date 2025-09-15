@@ -13,12 +13,12 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/notifications"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/pr"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/notifications"
+	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/providers"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // StatsFlags contains flags for the stats command

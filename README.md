@@ -23,13 +23,13 @@ Download the latest release for your platform:
 
 ```bash
 # macOS (Apple Silicon)
-curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-darwin-arm64
+curl -L -o git-pr-cli https://github.com/pacphi/git-pr-manager/releases/latest/download/git-pr-cli-darwin-arm64
 chmod +x git-pr-cli
 sudo mv git-pr-cli /usr/local/bin/
 
 # Or build from source
-git clone https://github.com/cphillipson/multi-gitter-pr-automation.git
-cd multi-gitter-pr-automation
+git clone https://github.com/pacphi/git-pr-manager.git
+cd git-pr-manager
 make build
 ```
 

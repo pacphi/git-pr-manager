@@ -7,11 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/internal/executor"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/merge"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/notifications"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/pr"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/internal/executor"
+	"github.com/pacphi/git-pr-manager/pkg/merge"
+	"github.com/pacphi/git-pr-manager/pkg/notifications"
+	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // MergeFlags contains flags for the merge command

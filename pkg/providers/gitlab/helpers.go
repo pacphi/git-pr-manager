@@ -10,7 +10,7 @@ import (
 
 	"gitlab.com/gitlab-org/api/client-go"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/providers/common"
+	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )
 
 // handleGitLabError converts GitLab API errors to common provider errors

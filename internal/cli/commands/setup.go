@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/wizard"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
+	"github.com/pacphi/git-pr-manager/pkg/wizard"
 )
 
 // SetupFlags contains flags for setup commands

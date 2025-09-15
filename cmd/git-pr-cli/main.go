@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/internal/cli/commands"
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/utils"
+	"github.com/pacphi/git-pr-manager/internal/cli/commands"
+	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
 // Version information (set by build flags)

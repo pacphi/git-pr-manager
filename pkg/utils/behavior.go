@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cphillipson/multi-gitter-pr-automation/pkg/config"
+	"github.com/pacphi/git-pr-manager/pkg/config"
 )
 
 // BehaviorManager manages rate limiting and retry behavior based on configuration

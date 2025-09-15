@@ -1,4 +1,4 @@
-module github.com/cphillipson/multi-gitter-pr-automation
+module github.com/pacphi/git-pr-manager
 
 go 1.24.0
 
