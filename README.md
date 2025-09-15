@@ -1,325 +1,222 @@
-# Multi-Gitter Pull-Request Automation
+# Git PR Manager
 
-🤖 **Automate pull request management across multiple Git repositories**
+🚀 **Modern Go-based tool for automating pull request management across multiple Git repositories**
 
-Manage PR automation centrally through YAML configuration or natural language commands via AI assistants. Watch repositories, check PR status, and automatically merge ready PRs across GitHub, GitLab, and Bitbucket.
+Git PR CLI provides a fast, reliable, and feature-rich solution for managing dependency updates and pull requests across GitHub, GitLab, and Bitbucket repositories from a single configuration.
 
-**Two ways to use:**
+## ✨ Features
 
-- 🖥️ **Command Line**: Traditional make commands and shell scripts
-- 🤖 **AI Assistant**: Natural language via MCP (Model Context Protocol) server in your IDE
+- 🔄 **Multi-Provider Support** - GitHub, GitLab, and Bitbucket in one tool
+- 🎯 **Smart Filtering** - Only merge PRs from trusted bots (dependabot, renovate, etc.)
+- 🛡️ **Safety First** - Dry-run mode, status checks, and approval requirements
+- ⚡ **High Performance** - Native Go performance with concurrent processing
+- 📱 **Notifications** - Slack webhook and email SMTP notifications
+- 🔧 **Interactive Setup** - Automated repository discovery and configuration wizard
+- 📊 **Rich Statistics** - Detailed repository and PR analytics
+- 🖥️ **Cross-Platform** - Native binaries for macOS, Linux, and Windows
 
-## ✨ Key Benefits
+## 🚀 Quick Start
 
-- ✅ **Central Configuration** - Manage all repositories from one YAML file
-- 🔄 **Multi-Provider Support** - GitHub, GitLab, Bitbucket in one tool
-- 🎯 **Smart Filtering** - Only merge PRs from trusted bots (dependabot, renovate)
-- 🛡️ **Safe by Default** - Dry-run mode, status checks, approval requirements
-- 📱 **Notifications** - Slack and email alerts for merged PRs
-- ⚡ **Simple CLI** - Easy-to-use commands for all operations
-- 🖥️ **Cross-Platform** - Works on macOS and Linux with automatic dependency management
-- 🤖 **AI Integration** - Natural language interface via MCP server for IDEs
+### Install
 
-## 🚀 Quick Start (5 minutes)
-
-**🤖 AI Assistant Setup**
-
-Use natural language commands in your IDE:
+Download the latest release for your platform:
 
 ```bash
-# 1. Build the MCP server
-cd mcp-server && go build -o multi-gitter-pr-a8n-mcp .
+# macOS (Apple Silicon)
+curl -L -o git-pr-cli https://github.com/cphillipson/multi-gitter-pr-automation/releases/latest/download/git-pr-cli-darwin-arm64
+chmod +x git-pr-cli
+sudo mv git-pr-cli /usr/local/bin/
 
-# 2. Follow IDE-specific setup guide
-# See docs/mcp-server/MCP_SETUP.md
+# Or build from source
+git clone https://github.com/cphillipson/multi-gitter-pr-automation.git
+cd multi-gitter-pr-automation
+make build
 ```
 
-Then in your IDE: *"Check all pull requests and merge ready dependabot PRs"*
-
-**📖 Full MCP Setup Guide**: [`docs/mcp-server/MCP_SETUP.md`](docs/mcp-server/MCP_SETUP.md)
-
-**🎯 Command Line Setup (Traditional)**
+### Configure Authentication
 
 ```bash
-# 1. Complete automated setup with wizard
-make setup-full
-
-# 2. Validate your configuration
-make validate
-
-# 3. Check what PRs are ready
-make check-prs
-
-# 4. See what would be merged (safe!)
-make dry-run
-
-# 5. Actually merge the PRs
-make merge-prs
+# Set required environment variables
+export GITHUB_TOKEN="ghp_..."
+export GITLAB_TOKEN="glpat_..."
+export BITBUCKET_USERNAME="username"
+export BITBUCKET_APP_PASSWORD="password"
 ```
 
-**⚙️ Manual Setup (Alternative)**
+### Setup Repositories
 
 ```bash
-# 1. Install dependencies
-make install
+# Interactive setup wizard
+git-pr-cli setup wizard
 
-# 2. Create your configuration file
-make setup-config
-
-# 3. Edit config.yaml to add your repositories
-# (This copies config.sample to config.yaml for you to customize)
-
-# 4. Validate and test
-make validate && make check-prs
+# Validate configuration
+git-pr-cli validate --check-repos
 ```
 
-**📚 New here?** Start with the **[Quick Start Guide](docs/QUICKSTART.md)** →
-
-## 📋 Configuration Options
-
-**🎯 Automatic Configuration (Recommended)**
-
-The setup wizard discovers and configures repositories automatically:
+### Start Automating
 
 ```bash
-make setup-wizard      # Interactive repository discovery
-make wizard-preview    # Preview what would be configured
-make wizard-additive   # Add to existing configuration
+# Check what's ready to merge
+git-pr-cli check
+
+# Dry run to see what would be merged
+git-pr-cli merge --dry-run
+
+# Merge ready PRs
+git-pr-cli merge
+
+# Watch continuously
+git-pr-cli watch --interval=5m
 ```
 
-**⚙️ Manual Configuration**
+## 📋 Commands
 
-Copy the sample and edit manually:
-
-```bash
-make setup-config  # Creates config.yaml from config.sample
-```
-
-Then edit **config.yaml** with your repositories:
-
-```yaml
-# Only merge PRs from trusted bots
-config:
-  pr_filters:
-    allowed_actors:
-      - "dependabot[bot]"
-      - "renovate[bot]"
-
-# Your repositories across providers
-repositories:
-  github:
-    - name: "company/frontend"
-      auto_merge: true
-    - name: "company/backend"
-      auto_merge: true
-
-  gitlab:
-    - name: "team/microservice"
-      auto_merge: true
-
-# Get notified when PRs are merged
-notifications:
-  slack:
-    webhook_url: "${SLACK_WEBHOOK_URL}"
-    enabled: true
-```
-
-**Environment Variables:**
-
-```bash
-# Set your tokens (add to ~/.bashrc or ~/.zshrc)
-export GITHUB_TOKEN="ghp_your_token_here"
-export GITLAB_TOKEN="glpat_your_token_here"
-export SLACK_WEBHOOK_URL="https://hooks.slack.com/..."
-```
+| Command | Description |
+|---------|-------------|
+| `check` | Check pull request status across repositories |
+| `merge` | Merge ready pull requests |
+| `setup wizard` | Interactive configuration setup |
+| `validate` | Validate configuration and connectivity |
+| `stats` | Show repository and PR statistics |
+| `watch` | Continuously monitor pull requests |
+| `test` | Test system functionality and integrations |
 
 ## 📖 Documentation
 
-Choose your path:
+- **[Installation Guide](docs/user-guide/installation.md)** - Complete installation and setup
+- **[Getting Started](docs/user-guide/getting-started.md)** - Step-by-step tutorial
+- **[Configuration Reference](docs/user-guide/configuration.md)** - All configuration options
+- **[Command Reference](docs/user-guide/commands/)** - Detailed command documentation
+- **[MCP Server Guide](docs/mcp-server/)** - AI assistant integration setup
+- **[Architecture](docs/developer-guide/architecture.md)** - Technical architecture overview
 
-| 📚 Guide | 🎯 Purpose | ⏱️ Time |
-|----------|------------|----------|
-| **[📋 Quick Start](docs/QUICKSTART.md)** | Get running in 5 minutes | 5 min |
-| **[🤖 MCP Server Setup](docs/mcp-server/MCP_SETUP.md)** | AI assistant integration | 10 min |
-| **[📖 Reference](docs/REFERENCE.md)** | Complete configuration guide | 15 min |
-| **[🔧 Troubleshooting](docs/TROUBLESHOOTING.md)** | Fix common issues | As needed |
-| **[📧 Notifications](docs/NOTIFICATIONS.md)** | Setup Slack & email alerts | 10 min |
+## 🔧 Configuration Example
 
-## 🛠️ Available Commands
+```yaml
+# config.yaml - Updated for Go-based schema
+pr_filters:
+  allowed_actors:
+    - "dependabot[bot]"
+    - "renovate[bot]"
+  skip_labels:
+    - "do-not-merge"
+    - "wip"
 
-**Setup Commands**
+repositories:
+  github:
+    - name: "myorg/web-app"
+      auto_merge: true
+      merge_strategy: "squash"
+      require_checks: true
+    - name: "myorg/*"
+      auto_merge: false
+      require_checks: true
 
-```bash
-make setup-full             # Complete automated setup with wizard
-make setup-wizard           # Interactive repository discovery wizard
-make wizard-preview         # Preview what wizard would configure
-make wizard-additive        # Add repositories to existing config
-make setup-config           # Copy config.sample to config.yaml (manual)
+auth:
+  github:
+    token: "${GITHUB_TOKEN}"
+  gitlab:
+    token: "${GITLAB_TOKEN}"
+    url: "${GITLAB_URL}"
+  bitbucket:
+    username: "${BITBUCKET_USERNAME}"
+    app_password: "${BITBUCKET_APP_PASSWORD}"
+
+notifications:
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#deployments"
+    enabled: false
 ```
 
-**Core Commands**
+## 🏗️ Development
+
+### Build
 
 ```bash
-make check-prs              # Check PR status across repositories
-make dry-run                # Preview what would be merged (safe!)
-make merge-prs              # Actually merge ready PRs
-make watch                  # Monitor continuously (30s refresh)
+# Build both CLI and MCP server
+make build
+
+# Cross-platform builds
+make cross-compile
+
+# Run tests
+make test
+
+# Run linting
+make lint
 ```
 
-**Maintenance Commands**
-
-```bash
-make validate               # Check configuration
-make test                   # Test functionality
-make backup-config          # Backup current configuration
-make restore-config         # Restore from backup
-make help                   # Show all commands
-```
-
-**MCP Server Commands**
-
-```bash
-# Build the MCP server
-cd mcp-server && go build -o multi-gitter-pr-a8n-mcp .
-
-# Then use natural language in your IDE:
-# "Check all pull requests across my repositories"
-# "Merge ready dependabot PRs after showing me a dry run"
-# "Validate my configuration and test notifications"
-```
-
-## 🏗️ Architecture
-
-**Traditional Command Line:**
+### Project Structure
 
 ```text
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   config.yaml   │───►│ check-prs.sh │───►│   PR Status     │
-│ (repositories)  │    │              │    │   Report        │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌──────────────┐    ┌─────────────────┐
-                       │ merge-prs.sh │───►│  Notifications  │
-                       │              │    │ (Slack/Email)   │
-                       └──────────────┘    └─────────────────┘
+├── cmd/
+│   ├── git-pr-cli/     # CLI application
+│   └── git-pr-mcp/     # MCP server for AI assistants
+├── pkg/                # Shared libraries
+│   ├── config/         # Configuration management
+│   ├── providers/      # Git provider implementations
+│   ├── pr/            # PR processing logic
+│   ├── merge/         # Merge strategies
+│   └── notifications/ # Notification systems
+├── internal/          # Application-specific code
+└── docs/             # Documentation
 ```
 
-**AI Assistant Integration (MCP):**
+### Technology Stack
 
-```text
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   IDE/AI Chat   │───►│  MCP Server  │───►│   Make Commands │
-│ "Check all PRs" │    │   (Go)       │    │  (same scripts) │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌──────────────┐    ┌─────────────────┐
-                       │ Natural Lang │───►│  Tool Results   │
-                       │  Response    │    │   & Status      │
-                       └──────────────┘    └─────────────────┘
-```
+- **CLI**: Cobra + Viper
+- **Providers**: Official Go clients (go-github, go-gitlab, go-bitbucket)
+- **HTTP**: Resty with retry logic and rate limiting
+- **Configuration**: YAML with environment variable support
+- **Logging**: Structured logging with Logrus
+- **Testing**: Testify + GoMock
 
-**Core Components:**
+## 🔐 Security
 
-- **`check-prs.sh`** - Scans repositories, reports PR status
-- **`merge-prs.sh`** - Merges ready PRs, sends notifications
-- **`test-notifications.sh`** - Tests Slack and email setup
-- **`setup-wizard.sh`** - Interactive repository discovery and configuration
-- **`mcp-server/`** - Go-based MCP server for AI assistant integration
-- **`Makefile`** - Convenient command interface
+- Tokens stored only in environment variables
+- HTTPS/TLS enforcement for all API calls
+- Input validation and sanitization
+- Rate limiting and retry logic
+- No sensitive data logging
 
-## 🔐 Authentication Quick Setup
+## 📊 Performance
 
-### GitHub
+- Native Go performance
+- Concurrent API processing with controlled limits
+- Built-in rate limiting per provider
+- HTTP connection pooling and keepalive
+- Memory-efficient streaming for large datasets
 
-1. **Create Token**: https://github.com/settings/tokens → `repo` + `workflow` scopes
-2. **Set Variable**: `export GITHUB_TOKEN="ghp_your_token"`
+## 🚀 Why Git PR CLI
 
-### GitLab
+This modern Go-based solution provides:
 
-1. **Create Token**: https://gitlab.com/-/profile/personal_access_tokens → `api` scope
-2. **Set Variable**: `export GITLAB_TOKEN="glpat_your_token"`
+- **High Performance** - Native Go performance with concurrent processing
+- **Robust Error Handling** - Structured error messages and recovery
+- **Enterprise Reliability** - Retry logic, timeout handling, and rate limiting
+- **Rich Features** - Interactive wizard, detailed statistics, flexible notifications
+- **Cross-Platform** - Single binary works on macOS, Linux, and Windows
 
-### Bitbucket
+## 🤝 Contributing
 
-1. **Create App Password**: https://bitbucket.org/account/settings/app-passwords/ → `Repositories: Write` + `Pull requests: Write`
-2. **Set Variables**:
+1. Fork the repository
+2. Create a feature branch
+3. Make changes with tests
+4. Run `make ci` to verify
+5. Submit a pull request
 
-   ```bash
-   export BITBUCKET_USERNAME="your_username"
-   export BITBUCKET_APP_PASSWORD="your_app_password"
-   ```
+## 📄 License
 
-> 💡 **Tip**: Add exports to `~/.bashrc` or `~/.zshrc` for persistence
-
-## ✨ Key Features
-
-**🎯 Smart PR Filtering**
-
-- Only processes PRs from trusted bots (dependabot, renovate, etc.)
-- Skips PRs with labels like `do-not-merge`, `wip`
-- Waits for status checks to pass
-
-**🔀 Flexible Merge Strategies**
-
-- `squash` - Clean commit history
-- `merge` - Preserve branch structure
-- `rebase` - Linear history
-
-**📱 Notifications**
-
-- Slack webhook integration
-- Email notifications via SMTP
-- Customizable message formats
-
-**🛡️ Safe Operations**
-
-- Dry-run mode shows what would happen
-- Requires status checks to pass
-- Optional approval requirements
-- Rate limiting protection
-
-## 🎯 Perfect For
-
-- **Dependency Updates** - Auto-merge dependabot/renovate PRs
-- **Multi-Repository Management** - Manage dozens of repos from one place
-- **Team Automation** - Reduce manual PR review overhead
-- **AI-Assisted Workflows** - Natural language PR management in your IDE
-- **CI/CD Integration** - Incorporate into deployment pipelines
-
-## 🤝 Contributing & Support
-
-- 📖 **Documentation**: All guides in [`docs/`](docs/) directory
-- 🐛 **Issues**: Found a bug? Open an issue
-- 💡 **Ideas**: Suggestions welcome
-- 🔧 **Development**: Run `make test` and `make lint`
-
-**Need Help?** Start with [📋 Quick Start](docs/QUICKSTART.md) or check [🔧 Troubleshooting](docs/TROUBLESHOOTING.md)
+[MIT License](LICENSE) - see LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
-This project stands on the shoulders of amazing open-source tools:
+Built with these excellent Go libraries:
 
-**Go Infrastructure:**
-- **[MCP Go SDK](https://github.com/mark3labs/mcp-go)** - Model Context Protocol implementation enabling AI assistant integration
-- **[Go YAML v3](https://gopkg.in/yaml.v3)** - Robust YAML parsing library for configuration handling
-- **[Google UUID](https://github.com/google/uuid)** - Reliable UUID generation utilities
-- **[Testify](https://github.com/stretchr/testify)** - Comprehensive testing framework for Go
-
-**CLI Tools:**
-- **[multi-gitter](https://github.com/lindell/multi-gitter)** - The inspiration for this project's name and approach to bulk repository operations
-- **[yq](https://github.com/mikefarah/yq)** - YAML processor that makes configuration parsing effortless
-- **[jq](https://github.com/jqlang/jq)** - JSON processor for handling API responses with precision
-- **[GitHub CLI (gh)](https://cli.github.com/)** - Enhanced GitHub operations and authentication
-- **[shellcheck](https://github.com/koalaman/shellcheck)** - Shell script linting to keep our bash code clean
-- **[Homebrew](https://brew.sh/)** - Package management for macOS dependencies
-- **curl** - The reliable HTTP client powering all our API interactions
-
-Special thanks to the **multi-gitter** project for pioneering the approach of managing operations across multiple repositories. While this tool focuses specifically on PR automation, multi-gitter's broader vision of bulk repository operations inspired our approach.
-
----
-
-**Ready to get started?** 🚀 **[📋 Quick Start Guide](docs/QUICKSTART.md)**
-
-<sub>Built for teams who want to automate PR management without cluttering every repository with GitHub Actions. Focus on code, let multi-gitter handle the merges.</sub>
+- [Cobra](https://github.com/spf13/cobra) - CLI framework
+- [Viper](https://github.com/spf13/viper) - Configuration management
+- [go-github](https://github.com/google/go-github) - GitHub API client
+- [go-gitlab](https://github.com/xanzy/go-gitlab) - GitLab API client
+- [go-resty](https://github.com/go-resty/resty) - HTTP client
+- [Logrus](https://github.com/sirupsen/logrus) - Structured logging

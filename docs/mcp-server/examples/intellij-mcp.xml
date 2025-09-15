@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mcpServers>
+  <server name="git-pr-automation">
+    <command>/absolute/path/to/git-pr-mcp</command>
+    <workingDirectory>/absolute/path/to/your/project</workingDirectory>
+    <arguments></arguments>
+    <environment>
+      <variable name="GITHUB_TOKEN" value="${GITHUB_TOKEN}" />
+      <variable name="GITLAB_TOKEN" value="${GITLAB_TOKEN}" />
+      <variable name="BITBUCKET_USERNAME" value="${BITBUCKET_USERNAME}" />
+      <variable name="BITBUCKET_APP_PASSWORD" value="${BITBUCKET_APP_PASSWORD}" />
+      <variable name="SLACK_WEBHOOK_URL" value="${SLACK_WEBHOOK_URL}" />
+    </environment>
+  </server>
+</mcpServers>

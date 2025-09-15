@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.24
+        cache: true
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: go test -v ./...
+
+    - name: Cross-compile binaries for all platforms
+      run: make cross-compile
+
+    - name: Generate checksums
+      run: |
+        cd bin
+        sha256sum * > SHA256SUMS
+        cat SHA256SUMS
+
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ -f CHANGELOG.md ]; then
+          # Extract changelog for this version if it exists
+          awk '/^## \[${{ steps.get_version.outputs.VERSION }}\]/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md > /tmp/changelog.txt
+          if [ -s /tmp/changelog.txt ]; then
+            echo "CHANGELOG_FILE=/tmp/changelog.txt" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+        # Fallback: generate from git commits
+        if [ ! -f /tmp/changelog.txt ] || [ ! -s /tmp/changelog.txt ]; then
+          echo "### Changes in ${{ steps.get_version.outputs.VERSION }}" > /tmp/git_changelog.txt
+          echo "" >> /tmp/git_changelog.txt
+          # Get commits since last tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> /tmp/git_changelog.txt
+          else
+            git log --pretty=format:"- %s (%h)" >> /tmp/git_changelog.txt
+          fi
+          echo "" >> /tmp/git_changelog.txt
+          echo "" >> /tmp/git_changelog.txt
+          echo "### Artifacts" >> /tmp/git_changelog.txt
+          echo "" >> /tmp/git_changelog.txt
+          echo "- **git-pr-cli**: Command-line interface for PR automation" >> /tmp/git_changelog.txt
+          echo "- **git-pr-mcp**: MCP server for AI assistant integration" >> /tmp/git_changelog.txt
+          echo "" >> /tmp/git_changelog.txt
+          echo "Download the appropriate binary for your platform from the assets below." >> /tmp/git_changelog.txt
+          echo "CHANGELOG_FILE=/tmp/git_changelog.txt" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: Release ${{ steps.get_version.outputs.VERSION }}
+        body_path: ${{ steps.changelog.outputs.CHANGELOG_FILE }}
+        files: |
+          bin/git-pr-cli-darwin-amd64
+          bin/git-pr-cli-darwin-arm64
+          bin/git-pr-cli-linux-amd64
+          bin/git-pr-cli-linux-arm64
+          bin/git-pr-cli-windows-amd64.exe
+          bin/git-pr-mcp-darwin-amd64
+          bin/git-pr-mcp-linux-amd64
+          bin/SHA256SUMS
+        draft: false
+        prerelease: ${{ contains(steps.get_version.outputs.VERSION, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload artifacts for debugging
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts-${{ steps.get_version.outputs.VERSION }}
+        path: bin/
+        retention-days: 30
+
+  docker:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ !contains(github.ref_name, '-') }} # Only for stable releases
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+    - name: Build and push CLI image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile.cli
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/git-pr-cli:latest
+          ghcr.io/${{ github.repository }}/git-pr-cli:${{ steps.get_version.outputs.VERSION }}
+        platforms: linux/amd64,linux/arm64
+
+    - name: Build and push MCP server image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile.mcp
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/git-pr-mcp:latest
+          ghcr.io/${{ github.repository }}/git-pr-mcp:${{ steps.get_version.outputs.VERSION }}
+        platforms: linux/amd64,linux/arm64
