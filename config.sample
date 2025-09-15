@@ -1,64 +1,65 @@
-# Multi-Gitter Pull-Request Automation Configuration
-# This file defines repositories to watch for PR management
+# Git PR CLI Configuration Sample
+# This file shows the complete configuration schema for the Git PR automation tool
 
-# Global configuration
-config:
-  # Default merge strategy (squash, merge, rebase)
-  default_merge_strategy: "squash"
-  # Auto-merge settings
-  auto_merge:
-    enabled: true
-    # Wait for status checks to pass
-    wait_for_checks: true
-    # Require approval before merge
-    require_approval: true
-  # PR filters
-  pr_filters:
-    # Only process PRs from these actors
-    allowed_actors:
-      - "dependabot[bot]"
-      - "renovate[bot]"
-    # Skip PRs with these labels
-    skip_labels:
-      - "do-not-merge"
-      - "wip"
-      - "draft"
+# Pull request filtering rules
+pr_filters:
+  # Only process PRs from these trusted actors/bots
+  allowed_actors:
+    - "dependabot[bot]"
+    - "renovate[bot]"
+    - "github-actions[bot]"
 
-# Repository configurations
+  # Skip PRs with these labels
+  skip_labels:
+    - "do-not-merge"
+    - "wip"
+    - "draft"
+    - "hold"
+
+  # Skip PRs older than this duration (optional)
+  # max_age: "30d"
+
+# Repository configuration per provider
 repositories:
   # GitHub repositories
   github:
     - name: "owner/repo1"
-      url: "https://github.com/owner/repo1"
-      provider: "github"
-      auth_type: "token"
-      merge_strategy: "squash"
       auto_merge: true
+      merge_strategy: "squash"
+      require_checks: true
+      # branch: "main"        # Optional: default branch
+      # min_approvals: 1      # Optional: minimum required approvals
+      # skip_labels: ["hold"] # Optional: additional skip labels for this repo
 
     - name: "owner/repo2"
-      url: "https://github.com/owner/repo2"
-      provider: "github"
-      auth_type: "token"
-      merge_strategy: "merge"
       auto_merge: true
+      merge_strategy: "merge"
+      require_checks: true
+
+    # Wildcard pattern support
+    - name: "myorg/*"
+      auto_merge: false
+      merge_strategy: "squash"
+      require_checks: true
 
   # GitLab repositories
   gitlab:
     - name: "group/project1"
-      url: "https://gitlab.com/group/project1"
-      provider: "gitlab"
-      auth_type: "token"
-      merge_strategy: "squash"
       auto_merge: true
+      merge_strategy: "squash"
+      require_checks: true
+
+    - name: "group/project2"
+      auto_merge: true
+      merge_strategy: "merge"
+      require_checks: true
 
   # Bitbucket repositories
   bitbucket:
     - name: "workspace/repo1"
-      url: "https://bitbucket.org/workspace/repo1"
-      provider: "bitbucket"
-      auth_type: "app-password"
-      merge_strategy: "squash"
       auto_merge: true
+      merge_strategy: "squash"
+      require_checks: true
 
 # Authentication configuration (use environment variables for security)
 auth:
@@ -67,12 +68,12 @@ auth:
 
   gitlab:
     token: "${GITLAB_TOKEN}"
-    url: "https://gitlab.com"  # For self-hosted GitLab instances
+    url: "${GITLAB_URL}"  # Optional: defaults to https://gitlab.com
 
   bitbucket:
     username: "${BITBUCKET_USERNAME}"
     app_password: "${BITBUCKET_APP_PASSWORD}"
-    workspace: "${BITBUCKET_WORKSPACE}"
+    workspace: "${BITBUCKET_WORKSPACE}"  # Optional
 
 # Notification settings (optional)
 notifications:
@@ -82,9 +83,51 @@ notifications:
     enabled: false
 
   email:
-    smtp_server: "smtp.gmail.com"
+    smtp_host: "${SMTP_HOST}"
     smtp_port: 587
-    username: "${EMAIL_USERNAME}"
-    password: "${EMAIL_PASSWORD}"
-    recipient: "${EMAIL_RECIPIENT}"  # Optional, defaults to username
+    smtp_username: "${SMTP_USERNAME}"
+    smtp_password: "${SMTP_PASSWORD}"
+    from: "${EMAIL_FROM}"
+    to:
+      - "devops@company.com"
+      - "team@company.com"
     enabled: false
+
+# Behavioral configuration (optional)
+behavior:
+  # Rate limiting settings
+  rate_limit:
+    requests_per_second: 5.0
+    burst: 10
+    timeout: "30s"
+
+  # Retry configuration
+  retry:
+    max_attempts: 3
+    backoff: "1s"
+    max_backoff: "30s"
+
+  # Maximum concurrent requests
+  concurrency: 5
+
+  # Global dry-run mode
+  dry_run: false
+
+  # Watch mode interval
+  watch_interval: "5m"
+
+  # Require manual approval before merging
+  require_approval: false
+
+# Example environment variables to set:
+# export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+# export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
+# export GITLAB_URL="https://gitlab.company.com"  # For self-hosted GitLab
+# export BITBUCKET_USERNAME="username"
+# export BITBUCKET_APP_PASSWORD="xxxxxxxxxxxx"
+# export BITBUCKET_WORKSPACE="workspace"
+# export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+# export SMTP_HOST="smtp.gmail.com"
+# export SMTP_USERNAME="notifications@company.com"
+# export SMTP_PASSWORD="app-password"
+# export EMAIL_FROM="Git PR Bot <notifications@company.com>"

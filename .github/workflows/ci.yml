@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: [1.24]
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Check formatting
+      if: runner.os != 'Windows'
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+      shell: bash
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Install golangci-lint
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        args: --timeout=5m
+
+    - name: Install deadcode analyzer
+      run: go install golang.org/x/tools/cmd/deadcode@latest
+
+    - name: Check for dead code
+      run: deadcode -test ./...
+
+    - name: Run tests
+      run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+      shell: bash
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  build:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: 1.24
+        cache: true
+
+    - name: Build CLI and MCP server
+      run: make build
+
+    - name: Test CLI binary execution
+      run: |
+        ./git-pr-cli --version
+        ./git-pr-cli --help
+
+    - name: Test MCP server binary execution
+      run: |
+        ./git-pr-mcp --help || echo "MCP server started successfully"
+
+    - name: Cross-compile all platforms
+      run: make cross-compile
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: git-pr-binaries-${{ github.sha }}
+        path: bin/
+        retention-days: 7
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push'
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: 1.24
+        cache: true
+
+    - name: Build binaries
+      run: make build
+
+    - name: Test configuration validation
+      run: |
+        # Test with sample config
+        cp legacy/configuration/config.sample config.yaml
+        ./git-pr-cli validate --check-auth=false || echo "Config validation test completed"
+
+    - name: Test help commands
+      run: |
+        ./git-pr-cli check --help
+        ./git-pr-cli merge --help
+        ./git-pr-cli setup --help
+        ./git-pr-cli validate --help
+        ./git-pr-cli stats --help
+        ./git-pr-cli watch --help

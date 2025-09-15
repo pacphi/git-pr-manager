@@ -1,333 +1,378 @@
-# Multi-Gitter Pull-Request Automation Makefile
-# Provides convenient commands for managing PRs across multiple repositories
+.PHONY: help build test clean install deps fmt lint vet deadcode gitleaks ci cross-compile release dev
+.PHONY: check merge setup validate config stats test-system run-cli run-mcp
 
-.PHONY: help check-deps check-prs merge-prs status dry-run install install-macos install-linux setup clean validate test
+# Build variables
+BINARY_CLI := git-pr-cli
+BINARY_MCP := git-pr-mcp
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+COMMIT_SHA := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+LDFLAGS := -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.commitSHA=$(COMMIT_SHA)
+GOFLAGS := -v
 
-# Default configuration file
-CONFIG_FILE ?= config.yaml
-
-# Detect OS
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	OS := macos
-else ifeq ($(UNAME_S),Linux)
-	OS := linux
-else
-	OS := unknown
-endif
-
-# Environment variables for CLI tools
-export GITHUB_TOKEN ?=
-export GITLAB_TOKEN ?=
-export BITBUCKET_USERNAME ?=
-export BITBUCKET_APP_PASSWORD ?=
-export BITBUCKET_WORKSPACE ?=
-export SLACK_WEBHOOK_URL ?=
+# Configuration
+CONFIG_FILE := config.yaml
+LOG_DIR := logs
 
 # Colors for output
-RED := \033[0;31m
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-BLUE := \033[0;34m
-NC := \033[0m # No Color
+RED=\033[0;31m
+GREEN=\033[0;32m
+YELLOW=\033[0;33m
+BLUE=\033[0;34m
+NC=\033[0m # No Color
 
-help: ## Show this help message
-	@echo "Multi-Gitter Pull-Request Automation Commands (macOS/Linux):"
-	@echo "Platform: $(OS)"
-	@echo ""
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(BLUE)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-	@echo ""
-	@echo "First-time setup (Easy):"
-	@echo "  1. make setup-full                # Complete automated setup with wizard"
-	@echo ""
-	@echo "First-time setup (Manual):"
-	@echo "  1. make setup-config              # Copy config.sample to config.yaml"
-	@echo "  2. Edit config.yaml               # Add your repositories and tokens"
-	@echo "  3. make validate                  # Check your configuration"
-	@echo ""
-	@echo "Configuration wizard:"
-	@echo "  make setup-wizard                 # Interactive repository discovery wizard"
-	@echo "  make wizard-preview               # Preview what would be configured"
-	@echo "  make wizard-additive              # Add repositories to existing config"
-	@echo ""
-	@echo "Environment Variables:"
-	@echo "  CONFIG_FILE         Configuration file (default: config.yaml)"
-	@echo "  GITHUB_TOKEN        GitHub personal access token"
-	@echo "  GITLAB_TOKEN        GitLab personal access token"
-	@echo "  BITBUCKET_USERNAME  Bitbucket username"
-	@echo "  BITBUCKET_APP_PASSWORD Bitbucket app password"
-	@echo "  SLACK_WEBHOOK_URL   Slack webhook URL for notifications"
-	@echo ""
-	@echo "Examples:"
-	@echo "  make check-prs                    # Check PR status with default config"
-	@echo "  make merge-prs                    # Merge ready PRs"
-	@echo "  make dry-run                      # Show what would be merged"
-	@echo "  make CONFIG_FILE=custom.yaml status  # Use custom config file"
-
-check-deps: ## Check for required dependencies
-	@echo "$(BLUE)[INFO]$(NC) Checking dependencies..."
-ifeq ($(OS),macos)
-	@command -v yq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) yq is required but not installed. Run: brew install yq"; exit 1; }
-	@command -v jq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) jq is required but not installed. Run: brew install jq"; exit 1; }
-	@command -v gh >/dev/null 2>&1 || { echo "$(YELLOW)[WARNING]$(NC) GitHub CLI (gh) not found. Install with: brew install gh"; }
-else ifeq ($(OS),linux)
-	@command -v yq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) yq is required but not installed. Run: make install-linux"; exit 1; }
-	@command -v jq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) jq is required but not installed. Run: make install-linux"; exit 1; }
-	@command -v gh >/dev/null 2>&1 || { echo "$(YELLOW)[WARNING]$(NC) GitHub CLI (gh) not found. Install from: https://cli.github.com/manual/installation"; }
-else
-	@command -v yq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) yq is required but not installed. See: https://github.com/mikefarah/yq#install"; exit 1; }
-	@command -v jq >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) jq is required but not installed. Install with your package manager"; exit 1; }
-	@command -v gh >/dev/null 2>&1 || { echo "$(YELLOW)[WARNING]$(NC) GitHub CLI (gh) not found. See: https://cli.github.com/manual/installation"; }
-endif
-	@command -v curl >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) curl is required but not installed."; exit 1; }
-	@echo "$(GREEN)[SUCCESS]$(NC) All required dependencies are installed"
-
-validate: check-deps ## Validate configuration file
-	@echo "$(BLUE)[INFO]$(NC) Validating configuration file: $(CONFIG_FILE)"
-	@if [ ! -f "$(CONFIG_FILE)" ]; then \
-		echo "$(RED)[ERROR]$(NC) Configuration file not found: $(CONFIG_FILE)"; \
-		echo "$(YELLOW)[SETUP]$(NC) Please run: make setup-config"; \
-		echo "$(YELLOW)[SETUP]$(NC) This will copy config.sample to config.yaml for you to customize"; \
-		exit 1; \
-	fi
-	@yq eval '.' $(CONFIG_FILE) >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) Invalid YAML syntax in $(CONFIG_FILE)"; exit 1; }
-	@echo "$(GREEN)[SUCCESS]$(NC) Configuration file is valid"
-
-check-prs: validate ## Check PR status across all repositories
-	@echo "$(BLUE)[INFO]$(NC) Checking PR status across repositories..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh
-
-check-prs-json: validate ## Check PR status and output in JSON format
-	@echo "$(BLUE)[INFO]$(NC) Checking PR status (JSON output)..."
-	@CONFIG_FILE=$(CONFIG_FILE) OUTPUT_FORMAT=json ./check-prs.sh
-
-status: check-prs ## Alias for check-prs
-
-merge-prs: validate ## Merge all ready PRs
-	@echo "$(BLUE)[INFO]$(NC) Merging ready PRs across repositories..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./merge-prs.sh
-
-dry-run: validate ## Show what PRs would be merged without actually merging
-	@echo "$(BLUE)[INFO]$(NC) Dry run - showing what would be merged..."
-	@CONFIG_FILE=$(CONFIG_FILE) DRY_RUN=true ./merge-prs.sh
-
-force-merge: validate ## Force merge PRs even if they appear not mergeable
-	@echo "$(YELLOW)[WARNING]$(NC) Force merging PRs..."
-	@CONFIG_FILE=$(CONFIG_FILE) FORCE=true ./merge-prs.sh
-
-install: ## Install required dependencies (auto-detect platform)
-ifeq ($(OS),macos)
-	@$(MAKE) install-macos
-else ifeq ($(OS),linux)
-	@$(MAKE) install-linux
-else
-	@echo "$(RED)[ERROR]$(NC) Unsupported operating system. Please install dependencies manually:"
-	@echo "  - jq: JSON processor"
-	@echo "  - yq: YAML processor (https://github.com/mikefarah/yq)"
-	@echo "  - gh: GitHub CLI (optional, https://cli.github.com/)"
+# Include environment variables from .env file if it exists
+ifneq (,$(wildcard .env))
+    include .env
+    export
 endif
 
-install-macos: ## Install required dependencies on macOS
-	@echo "$(BLUE)[INFO]$(NC) Installing dependencies on macOS..."
+# Default target
+default: help
+
+## help: Display this help message
+help:
+	@echo "Git PR CLI - Available Commands:"
+	@echo ""
+	@echo "${GREEN}Build and Development:${NC}"
+	@grep -E '^## (build|test|clean|run)' Makefile | sed 's/##//' | column -t -s ':'
+	@echo ""
+	@echo "${GREEN}Setup and Installation:${NC}"
+	@grep -E '^## (install|setup|deps)' Makefile | sed 's/##//' | column -t -s ':' | head -12
+	@echo ""
+	@echo "${GREEN}Core Operations:${NC}"
+	@grep -E '^## (check|merge|validate|watch)' Makefile | sed 's/##//' | column -t -s ':'
+	@echo ""
+	@echo "${GREEN}Quality and CI:${NC}"
+	@grep -E '^## (fmt|lint|vet|gitleaks|ci)' Makefile | sed 's/##//' | column -t -s ':'
+	@echo ""
+	@echo "${GREEN}Distribution:${NC}"
+	@grep -E '^## (cross-compile|release)' Makefile | sed 's/##//' | column -t -s ':'
+	@echo ""
+
+## build: Build both CLI and MCP server binaries
+build:
+	@echo "${BLUE}Building $(BINARY_CLI) version $(VERSION)...${NC}"
+	@go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BINARY_CLI) ./cmd/git-pr-cli
+	@echo "${GREEN}Build complete: $(BINARY_CLI)${NC}"
+	@echo "${BLUE}Building $(BINARY_MCP) version $(VERSION)...${NC}"
+	@go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BINARY_MCP) ./cmd/git-pr-mcp
+	@echo "${GREEN}Build complete: $(BINARY_MCP)${NC}"
+
+## test: Run all tests with coverage
+test:
+	@echo "${BLUE}Running tests...${NC}"
+	@go test -v -cover ./...
+
+## test-coverage: Generate detailed coverage report
+test-coverage:
+	@echo "${BLUE}Running tests with coverage...${NC}"
+	@go test -v -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "${GREEN}Coverage report generated: coverage.html${NC}"
+
+## clean: Remove build artifacts and temporary files
+clean:
+	@echo "${BLUE}Cleaning build artifacts...${NC}"
+	@rm -f $(BINARY_CLI) $(BINARY_MCP)
+	@rm -rf bin/ releases/
+	@rm -f coverage.out coverage.html
+	@rm -rf tmp/ logs/*.log
+	@echo "${GREEN}Clean complete${NC}"
+
+## install: Install required dependencies
+install:
+	@echo "${BLUE}Installing dependencies...${NC}"
 	@if command -v brew >/dev/null 2>&1; then \
-		brew install yq jq gh; \
-		echo "$(GREEN)[SUCCESS]$(NC) Dependencies installed successfully"; \
-	else \
-		echo "$(RED)[ERROR]$(NC) Homebrew not found. Please install Homebrew first: https://brew.sh"; \
-		exit 1; \
-	fi
-
-install-linux: ## Install required dependencies on Linux
-	@echo "$(BLUE)[INFO]$(NC) Installing dependencies on Linux..."
-	@if command -v apt-get >/dev/null 2>&1; then \
-		echo "$(BLUE)[INFO]$(NC) Using apt-get (Debian/Ubuntu)..."; \
-		sudo apt-get update && sudo apt-get install -y jq curl; \
-		sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64; \
-		sudo chmod +x /usr/local/bin/yq; \
-		echo "$(GREEN)[SUCCESS]$(NC) Dependencies installed successfully"; \
+		make install-macos; \
+	elif command -v apt-get >/dev/null 2>&1; then \
+		make install-linux-apt; \
 	elif command -v yum >/dev/null 2>&1; then \
-		echo "$(BLUE)[INFO]$(NC) Using yum (RHEL/CentOS)..."; \
-		sudo yum install -y jq curl; \
-		sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64; \
-		sudo chmod +x /usr/local/bin/yq; \
-		echo "$(GREEN)[SUCCESS]$(NC) Dependencies installed successfully"; \
+		make install-linux-yum; \
 	elif command -v dnf >/dev/null 2>&1; then \
-		echo "$(BLUE)[INFO]$(NC) Using dnf (Fedora)..."; \
-		sudo dnf install -y jq curl; \
-		sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64; \
-		sudo chmod +x /usr/local/bin/yq; \
-		echo "$(GREEN)[SUCCESS]$(NC) Dependencies installed successfully"; \
+		make install-linux-dnf; \
 	elif command -v pacman >/dev/null 2>&1; then \
-		echo "$(BLUE)[INFO]$(NC) Using pacman (Arch)..."; \
-		sudo pacman -S --noconfirm jq yq curl; \
-		echo "$(GREEN)[SUCCESS]$(NC) Dependencies installed successfully"; \
+		make install-linux-pacman; \
+	elif command -v winget >/dev/null 2>&1; then \
+		make install-windows-winget; \
+	elif command -v choco >/dev/null 2>&1; then \
+		make install-windows-choco; \
+	elif command -v scoop >/dev/null 2>&1; then \
+		make install-windows-scoop; \
 	else \
-		echo "$(RED)[ERROR]$(NC) No supported package manager found. Please install manually:"; \
-		echo "  - jq: JSON processor"; \
-		echo "  - yq: YAML processor (https://github.com/mikefarah/yq)"; \
-		echo "  - curl: Command line HTTP client"; \
+		echo "${RED}Unsupported package manager. Please install jq, yq, and curl manually.${NC}"; \
+		echo "For Windows: Install winget, chocolatey, or scoop package manager"; \
 		exit 1; \
 	fi
 
-setup-config: ## Copy config.sample to config.yaml for customization
-	@if [ -f "config.yaml" ]; then \
-		echo "$(YELLOW)[WARNING]$(NC) config.yaml already exists"; \
-		echo "$(BLUE)[INFO]$(NC) Use 'make backup-config' to backup current config first if needed"; \
+## install-macos: Install dependencies on macOS using Homebrew
+install-macos:
+	@if ! command -v brew >/dev/null 2>&1; then \
+		echo "${RED}Homebrew not found. Please install it first: https://brew.sh${NC}"; \
+		exit 1; \
+	fi
+	@echo "${BLUE}Installing dependencies via Homebrew...${NC}"
+	@brew install jq yq curl gh || true
+	@echo "${GREEN}macOS dependencies installed${NC}"
+
+## install-linux-apt: Install dependencies on Ubuntu/Debian
+install-linux-apt:
+	@echo "${BLUE}Installing dependencies via apt...${NC}"
+	@sudo apt-get update -qq
+	@sudo apt-get install -y jq curl wget
+	@wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+	@chmod +x /usr/local/bin/yq
+	@echo "${GREEN}Linux (apt) dependencies installed${NC}"
+
+## install-linux-yum: Install dependencies on CentOS/RHEL
+install-linux-yum:
+	@echo "${BLUE}Installing dependencies via yum...${NC}"
+	@sudo yum install -y jq curl wget
+	@wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+	@chmod +x /usr/local/bin/yq
+	@echo "${GREEN}Linux (yum) dependencies installed${NC}"
+
+## install-linux-dnf: Install dependencies on Fedora
+install-linux-dnf:
+	@echo "${BLUE}Installing dependencies via dnf...${NC}"
+	@sudo dnf install -y jq curl wget
+	@wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+	@chmod +x /usr/local/bin/yq
+	@echo "${GREEN}Linux (dnf) dependencies installed${NC}"
+
+## install-linux-pacman: Install dependencies on Arch Linux
+install-linux-pacman:
+	@echo "${BLUE}Installing dependencies via pacman...${NC}"
+	@sudo pacman -Sy jq curl wget --noconfirm
+	@wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+	@chmod +x /usr/local/bin/yq
+	@echo "${GREEN}Linux (pacman) dependencies installed${NC}"
+
+## install-windows-winget: Install dependencies on Windows using winget
+install-windows-winget:
+	@echo "${BLUE}Installing dependencies via winget...${NC}"
+	@winget install --id Microsoft.PowerShell --silent
+	@winget install --id stedolan.jq --silent
+	@winget install --id mikefarah.yq --silent
+	@winget install --id cURL.cURL --silent
+	@echo "${GREEN}Windows (winget) dependencies installed${NC}"
+
+## install-windows-choco: Install dependencies on Windows using Chocolatey
+install-windows-choco:
+	@echo "${BLUE}Installing dependencies via chocolatey...${NC}"
+	@choco install jq yq curl -y
+	@echo "${GREEN}Windows (chocolatey) dependencies installed${NC}"
+
+## install-windows-scoop: Install dependencies on Windows using Scoop
+install-windows-scoop:
+	@echo "${BLUE}Installing dependencies via scoop...${NC}"
+	@scoop install jq yq curl
+	@echo "${GREEN}Windows (scoop) dependencies installed${NC}"
+
+## deps: Download and tidy Go dependencies
+deps:
+	@echo "${BLUE}Downloading Go dependencies...${NC}"
+	@go mod download
+	@go mod tidy
+	@echo "${GREEN}Dependencies updated${NC}"
+
+## deps-upgrade: Upgrade all dependencies to their latest versions
+deps-upgrade:
+	@echo "${BLUE}Upgrading all dependencies...${NC}"
+	@go get -u ./...
+	@go mod tidy
+	@echo "${GREEN}Dependencies upgraded to latest versions${NC}"
+
+## fmt: Format Go code
+fmt:
+	@echo "${BLUE}Formatting code...${NC}"
+	@go fmt ./...
+	@echo "${GREEN}Code formatted${NC}"
+
+## lint: Run Go linter (requires golangci-lint)
+lint:
+	@echo "${BLUE}Running linter...${NC}"
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run ./...; \
 	else \
-		echo "$(BLUE)[INFO]$(NC) Copying config.sample to config.yaml..."; \
-		cp config.sample config.yaml; \
-		echo "$(GREEN)[SUCCESS]$(NC) Configuration file created: config.yaml"; \
-		echo "$(YELLOW)[NEXT]$(NC) Edit config.yaml to add your repositories and tokens"; \
-		echo "$(YELLOW)[NEXT]$(NC) Then run: make validate"; \
+		echo "${YELLOW}golangci-lint not installed. Install with:${NC}"; \
+		echo "  go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
 
-setup: install setup-config ## Setup dependencies, config, and authenticate with Git providers
-	@echo "$(BLUE)[INFO]$(NC) Setting up authentication..."
-	@if command -v gh >/dev/null 2>&1; then \
-		echo "$(BLUE)[INFO]$(NC) Authenticating with GitHub..."; \
-		gh auth login --web; \
-	fi
-	@echo ""
-	@echo "$(YELLOW)[NOTE]$(NC) Please set the following environment variables:"
-	@echo "  export GITHUB_TOKEN=your_github_token"
-	@echo "  export GITLAB_TOKEN=your_gitlab_token"
-	@echo "  export BITBUCKET_USERNAME=your_bitbucket_username"
-	@echo "  export BITBUCKET_APP_PASSWORD=your_bitbucket_app_password"
-	@echo ""
-	@echo "Or add them to your ~/.bashrc, ~/.zshrc, or ~/.profile"
+## vet: Run Go vet
+vet:
+	@echo "${BLUE}Running go vet...${NC}"
+	@go vet ./...
 
-test-notifications: ## Test Slack and email notification setup
-	@echo "$(BLUE)[INFO]$(NC) Testing notification setup..."
-	@./test-notifications.sh
-
-test: validate ## Run basic tests to verify functionality
-	@echo "$(BLUE)[INFO]$(NC) Running basic functionality tests..."
-	@echo "Testing configuration parsing..."
-	@yq '.repositories.github[0].name' $(CONFIG_FILE) >/dev/null 2>&1 && echo "$(GREEN)✓$(NC) GitHub repos configured" || echo "$(YELLOW)!$(NC) No GitHub repos configured"
-	@yq '.repositories.gitlab[0].name' $(CONFIG_FILE) >/dev/null 2>&1 && echo "$(GREEN)✓$(NC) GitLab repos configured" || echo "$(YELLOW)!$(NC) No GitLab repos configured"
-	@yq '.repositories.bitbucket[0].name' $(CONFIG_FILE) >/dev/null 2>&1 && echo "$(GREEN)✓$(NC) Bitbucket repos configured" || echo "$(YELLOW)!$(NC) No Bitbucket repos configured"
-	@echo ""
-	@echo "Testing scripts..."
-	@if ./check-prs.sh --help >/dev/null 2>&1; then \
-		echo "$(GREEN)✓$(NC) check-prs.sh script working"; \
+## deadcode: Run deadcode analysis
+deadcode:
+	@echo "${BLUE}Running deadcode analysis...${NC}"
+	@if command -v deadcode >/dev/null 2>&1; then \
+		deadcode -test ./...; \
 	else \
-		echo "$(RED)✗$(NC) check-prs.sh script has issues"; \
+		echo "${YELLOW}deadcode not installed. Install with:${NC}"; \
+		echo "  go install golang.org/x/tools/cmd/deadcode@latest"; \
 	fi
-	@if ./merge-prs.sh --help >/dev/null 2>&1; then \
-		echo "$(GREEN)✓$(NC) merge-prs.sh script working"; \
+
+## gitleaks: Run gitleaks secret scanning
+gitleaks:
+	@echo "${BLUE}Running gitleaks secret scanning...${NC}"
+	@if command -v gitleaks >/dev/null 2>&1; then \
+		gitleaks dir . --verbose; \
 	else \
-		echo "$(RED)✗$(NC) merge-prs.sh script has issues"; \
+		echo "${YELLOW}gitleaks not installed. Install with:${NC}"; \
+		if command -v brew >/dev/null 2>&1; then \
+			echo "  brew install gitleaks"; \
+		elif command -v apt-get >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v pacman >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v winget >/dev/null 2>&1; then \
+			echo "  winget install --id trufflesecurity.gitleaks"; \
+		elif command -v choco >/dev/null 2>&1; then \
+			echo "  choco install gitleaks"; \
+		elif command -v scoop >/dev/null 2>&1; then \
+			echo "  scoop install gitleaks"; \
+		else \
+			echo "  # Download from releases page: https://github.com/gitleaks/gitleaks/releases"; \
+			echo "  # For Windows: Download .exe from releases page"; \
+			echo "  # Or use Docker: docker run --rm -v \$$(pwd):/path ghcr.io/gitleaks/gitleaks:latest dir /path"; \
+		fi; \
 	fi
 
-clean: ## Clean up temporary files and caches
-	@echo "$(BLUE)[INFO]$(NC) Cleaning up..."
-	@find . -name "*.tmp" -delete 2>/dev/null || true
-	@find . -name ".DS_Store" -delete 2>/dev/null || true
-	@echo "$(GREEN)[SUCCESS]$(NC) Cleanup completed"
+## ci: Run all CI checks (fmt, vet, lint, deadcode, gitleaks, test)
+ci: fmt vet lint deadcode gitleaks test
+	@echo "${GREEN}All CI checks completed successfully${NC}"
 
-# Provider-specific commands
-check-github: validate ## Check only GitHub repositories
-	@echo "$(BLUE)[INFO]$(NC) Checking GitHub repositories only..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh | grep -E "github|REPOSITORY|---"
+## run-cli: Build and run the CLI
+run-cli: build
+	@echo "${BLUE}Running $(BINARY_CLI)...${NC}"
+	@./$(BINARY_CLI)
 
-check-gitlab: validate ## Check only GitLab repositories
-	@echo "$(BLUE)[INFO]$(NC) Checking GitLab repositories only..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh | grep -E "gitlab|REPOSITORY|---"
+## run-mcp: Build and run the MCP server
+run-mcp: build
+	@echo "${BLUE}Running $(BINARY_MCP)...${NC}"
+	@./$(BINARY_MCP)
 
-check-bitbucket: validate ## Check only Bitbucket repositories
-	@echo "$(BLUE)[INFO]$(NC) Checking Bitbucket repositories only..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh | grep -E "bitbucket|REPOSITORY|---"
+## check: Check pull request status across repositories
+check: build
+	@echo "${BLUE}Checking pull request status...${NC}"
+	@mkdir -p $(LOG_DIR)
+	@./$(BINARY_CLI) check $(ARGS) | tee $(LOG_DIR)/check-$$(date +%Y%m%d_%H%M%S).log
 
-# Utility commands
-stats: validate ## Show repository statistics
-	@echo "$(BLUE)[INFO]$(NC) Repository statistics:"
-	@echo "GitHub repos: $$(yq '.repositories.github | length' $(CONFIG_FILE) 2>/dev/null || echo 0)"
-	@echo "GitLab repos: $$(yq '.repositories.gitlab | length' $(CONFIG_FILE) 2>/dev/null || echo 0)"
-	@echo "Bitbucket repos: $$(yq '.repositories.bitbucket | length' $(CONFIG_FILE) 2>/dev/null || echo 0)"
-	@echo "Total repos: $$(( $$(yq '.repositories.github | length' $(CONFIG_FILE) 2>/dev/null || echo 0) + $$(yq '.repositories.gitlab | length' $(CONFIG_FILE) 2>/dev/null || echo 0) + $$(yq '.repositories.bitbucket | length' $(CONFIG_FILE) 2>/dev/null || echo 0) ))"
+## merge: Merge ready pull requests
+merge: build
+	@echo "${BLUE}Merging ready pull requests...${NC}"
+	@mkdir -p $(LOG_DIR)
+	@./$(BINARY_CLI) merge $(ARGS) | tee $(LOG_DIR)/merge-$$(date +%Y%m%d_%H%M%S).log
 
-watch: ## Continuously monitor PR status (refresh every 30 seconds)
-	@echo "$(BLUE)[INFO]$(NC) Starting continuous monitoring (Ctrl+C to stop)..."
-	@while true; do \
-		clear; \
-		echo "$(BLUE)[$(shell date)]$(NC) PR Status:"; \
-		echo ""; \
-		CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh || true; \
-		echo ""; \
-		echo "$(YELLOW)[INFO]$(NC) Refreshing in 30 seconds... (Ctrl+C to stop)"; \
-		sleep 30; \
+## setup: Run setup wizard for configuration
+setup: build
+	@echo "${BLUE}Running setup wizard...${NC}"
+	@./$(BINARY_CLI) setup wizard
+
+## validate: Validate configuration and connectivity
+validate: build
+	@echo "${BLUE}Validating configuration...${NC}"
+	@./$(BINARY_CLI) validate --check-repos
+
+## stats: Show repository and PR statistics
+stats: build
+	@echo "${BLUE}Generating statistics...${NC}"
+	@./$(BINARY_CLI) stats --detailed
+
+## watch: Continuously monitor pull requests
+watch: build
+	@echo "${BLUE}Starting watch mode...${NC}"
+	@./$(BINARY_CLI) watch --interval=30s
+
+## test-system: Test system functionality and integrations
+test-system: build
+	@echo "${BLUE}Testing system functionality...${NC}"
+	@./$(BINARY_CLI) test --notifications
+
+## cross-compile: Build binaries for multiple platforms
+cross-compile:
+	@echo "${BLUE}Building for multiple platforms...${NC}"
+	@mkdir -p bin/
+
+	@echo "Building CLI for Darwin AMD64..."
+	@GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_CLI)-darwin-amd64 ./cmd/git-pr-cli
+
+	@echo "Building CLI for Darwin ARM64..."
+	@GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_CLI)-darwin-arm64 ./cmd/git-pr-cli
+
+	@echo "Building CLI for Linux AMD64..."
+	@GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_CLI)-linux-amd64 ./cmd/git-pr-cli
+
+	@echo "Building CLI for Linux ARM64..."
+	@GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_CLI)-linux-arm64 ./cmd/git-pr-cli
+
+	@echo "Building CLI for Windows AMD64..."
+	@GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_CLI)-windows-amd64.exe ./cmd/git-pr-cli
+
+	@echo "Building MCP for Darwin AMD64..."
+	@GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_MCP)-darwin-amd64 ./cmd/git-pr-mcp
+
+	@echo "Building MCP for Linux AMD64..."
+	@GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_MCP)-linux-amd64 ./cmd/git-pr-mcp
+
+	@echo "${GREEN}Cross-compilation complete. Binaries in bin/${NC}"
+
+## release: Create release artifacts
+release: clean cross-compile
+	@echo "${BLUE}Creating release artifacts...${NC}"
+	@mkdir -p releases/
+	@for file in bin/*; do \
+		if [ -f "$$file" ]; then \
+			base=$$(basename $$file); \
+			tar czf "releases/$$base-$(VERSION).tar.gz" -C bin/ $$base; \
+			echo "Created: releases/$$base-$(VERSION).tar.gz"; \
+		fi \
 	done
+	@echo "${GREEN}Release artifacts created in releases/${NC}"
 
-# Configuration management
-config-template: ## Create a template configuration file
-	@echo "$(BLUE)[INFO]$(NC) Creating template configuration file: config-template.yaml"
-	@sed 's/owner\/repo[0-9]/your-username\/your-repo/g' $(CONFIG_FILE) > config-template.yaml
-ifeq ($(OS),macos)
-	@sed -i '' 's/group\/project[0-9]/your-group\/your-project/g' config-template.yaml
-	@sed -i '' 's/workspace\/repo[0-9]/your-workspace\/your-repo/g' config-template.yaml
-else
-	@sed -i 's/group\/project[0-9]/your-group\/your-project/g' config-template.yaml
-	@sed -i 's/workspace\/repo[0-9]/your-workspace\/your-repo/g' config-template.yaml
-endif
-	@echo "$(GREEN)[SUCCESS]$(NC) Template created: config-template.yaml"
-
-validate-config: validate ## Validate the configuration file (alias for validate)
-
-# Development and debugging
-debug: ## Run in debug mode with verbose output
-	@echo "$(BLUE)[INFO]$(NC) Running in debug mode..."
-	@set -x; CONFIG_FILE=$(CONFIG_FILE) ./check-prs.sh
-
-lint: ## Lint shell scripts
-	@echo "$(BLUE)[INFO]$(NC) Linting shell scripts..."
-	@if command -v shellcheck >/dev/null 2>&1; then \
-		shellcheck *.sh && echo "$(GREEN)[SUCCESS]$(NC) All scripts passed linting"; \
+## dev: Development mode with file watching (requires entr)
+dev:
+	@if command -v entr >/dev/null 2>&1; then \
+		find . -name "*.go" | entr -r make run-cli; \
 	else \
-		echo "$(YELLOW)[WARNING]$(NC) shellcheck not installed. Install with: brew install shellcheck"; \
-	fi
-
-# Multi-gitter integration (if multi-gitter is installed)
-multi-gitter-check: ## Check if multi-gitter is available
-	@if command -v multi-gitter >/dev/null 2>&1; then \
-		echo "$(GREEN)[SUCCESS]$(NC) multi-gitter is installed: $$(multi-gitter --version)"; \
-	else \
-		echo "$(YELLOW)[WARNING]$(NC) multi-gitter not found. Install from: https://github.com/lindell/multi-gitter"; \
-	fi
-
-# Backup and restore
-backup-config: ## Backup current configuration
-	@echo "$(BLUE)[INFO]$(NC) Backing up configuration..."
-	@cp $(CONFIG_FILE) $(CONFIG_FILE).backup.$$(date +%Y%m%d_%H%M%S)
-	@echo "$(GREEN)[SUCCESS]$(NC) Configuration backed up"
-
-restore-config: ## Restore configuration from latest backup
-	@echo "$(BLUE)[INFO]$(NC) Restoring configuration from latest backup..."
-	@if ls $(CONFIG_FILE).backup.* 1> /dev/null 2>&1; then \
-		latest=$$(ls -t $(CONFIG_FILE).backup.* | head -1); \
-		cp "$$latest" $(CONFIG_FILE); \
-		echo "$(GREEN)[SUCCESS]$(NC) Configuration restored from $$latest"; \
-	else \
-		echo "$(RED)[ERROR]$(NC) No backup files found"; \
+		echo "${YELLOW}entr not installed. Install with:${NC}"; \
+		if command -v brew >/dev/null 2>&1; then \
+			echo "  brew install entr"; \
+		elif command -v apt-get >/dev/null 2>&1; then \
+			echo "  sudo apt-get install entr"; \
+		elif command -v yum >/dev/null 2>&1; then \
+			echo "  sudo yum install entr"; \
+		elif command -v dnf >/dev/null 2>&1; then \
+			echo "  sudo dnf install entr"; \
+		elif command -v pacman >/dev/null 2>&1; then \
+			echo "  sudo pacman -S entr"; \
+		elif command -v winget >/dev/null 2>&1; then \
+			echo "  # entr not available via winget - use WSL or alternative file watcher"; \
+		elif command -v choco >/dev/null 2>&1; then \
+			echo "  # entr not available via chocolatey - use WSL or alternative file watcher"; \
+		elif command -v scoop >/dev/null 2>&1; then \
+			echo "  # entr not available via scoop - use WSL or alternative file watcher"; \
+		else \
+			echo "  # Platform not detected - install entr manually or use alternative file watcher"; \
+		fi; \
 		exit 1; \
 	fi
 
-# Configuration wizard commands
-setup-wizard: ## Run the interactive configuration wizard
-	@echo "$(BLUE)[INFO]$(NC) Starting configuration wizard..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh
+# Convenience aliases for backward compatibility
+dry-run: ARGS=--dry-run
+dry-run: merge
 
-config-wizard: setup-wizard ## Alias for setup-wizard
+check-json: ARGS=--output json
+check-json: check
 
-wizard-preview: ## Run the configuration wizard in preview mode
-	@echo "$(BLUE)[INFO]$(NC) Running configuration wizard in preview mode..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh --preview
-
-wizard-additive: ## Run the wizard in additive mode (add to existing config)
-	@echo "$(BLUE)[INFO]$(NC) Running configuration wizard in additive mode..."
-	@CONFIG_FILE=$(CONFIG_FILE) ./setup-wizard.sh --additive
-
-# Enhanced setup with wizard
-setup-full: install setup-config setup-wizard ## Complete setup with dependency installation, config creation, and wizard
-	@echo "$(GREEN)[SUCCESS]$(NC) Full setup completed!"
-	@echo "$(YELLOW)[NEXT]$(NC) Your repositories have been configured automatically"
-	@echo "$(YELLOW)[NEXT]$(NC) Run 'make validate' to verify your configuration"
+.DEFAULT_GOAL := help

@@ -1,52 +1,12 @@
-# Environment files
+# Environment and Configuration Files
 .env
-.env.local
-.env.production
-.env.staging
-
-# Configuration backups
-config.yaml.backup.*
-
-# Temporary files
-*.tmp
-*.temp
-
-# Log files
-*.log
-logs/
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDE/Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Shell script artifacts
-*.pid
-
-# Cache directories
-.cache/
-cache/
-
-# Configuration files (users should copy config.sample to config.yaml)
+.env.*
+!.env.example
 config.yaml
-
-# Local development files
-local-config.yaml
-test-config.yaml
+*-config.yaml
 debug-*.yaml
 
-# Go build artifacts
+# Go Build Artifacts
 *.exe
 *.exe~
 *.dll
@@ -54,20 +14,113 @@ debug-*.yaml
 *.dylib
 *.test
 *.out
+bin/
+build/
+dist/
+releases/
+vendor/
 go.work
 go.work.sum
+git-pr-cli
+git-pr-mcp
+!cmd/git-pr-cli
+!cmd/git-pr-mcp
 
-# Go binaries (specific to this project)
-mcp-server/multi-gitter-pr-a8n-mcp
-mcp-server/multi-gitter-mcp
-
-# Go module cache (if locally cached)
-vendor/
-
-# Go coverage files
+# Go Testing and Coverage
 *.cover
+*.coverprofile
 coverage.out
-profile.out
+coverage.html
+coverage.txt
+test-results/
+benchmark-results/
 
-# Air live reload tool
+# Go Profiling and Debug
+*.prof
+*.pprof
+cpu.prof
+mem.prof
+debug
+debug.test
+*.debug
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+Session.vim
+.netrwhist
+tags
+*.sublime-workspace
+*.sublime-project
+\#*\#
+.\#*
+.emacs.desktop*
+
+# Operating System Files
+# macOS
+.DS_Store*
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db*
+ehthumbs*.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Logs and Temporary Files
+*.log
+logs/
 tmp/
+temp/
+.cache/
+cache/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.pid
+
+# Archives and Security
+*.tar.gz
+*.zip
+*.tar.bz2
+*.rar
+*.7z
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+private/
+secrets/
+
+# Project Specific
+.claude/
+.project/
+config.yaml.backup.*
+
+# Goreleaser
+.goreleaser.yml.bak

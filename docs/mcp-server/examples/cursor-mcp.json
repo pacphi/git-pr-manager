@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "git-pr-automation": {
+      "command": "/absolute/path/to/git-pr-mcp",
+      "args": [],
+      "cwd": "/absolute/path/to/your/project"
+    }
+  }
+}
