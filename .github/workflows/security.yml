@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  pull-requests: write
 
 jobs:
   security-scan:
@@ -126,7 +127,7 @@ jobs:
         fetch-depth: 0
 
     - name: Run TruffleHog OSS
-      uses: trufflesecurity/trufflehog@main
+      uses: trufflesecurity/trufflehog@v3.84.2
       with:
         path: ./
         base: main
