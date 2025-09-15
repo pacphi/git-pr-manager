@@ -41,11 +41,11 @@ Git PR CLI is built with a modular Go architecture that separates concerns and e
 ```go
 // Core configuration management
 type Config struct {
-    Auth          AuthConfig                 `yaml:"auth"`
-    PRFilters     PRFilters                 `yaml:"pr_filters"`
-    Repositories  map[string][]Repository   `yaml:"repositories"`
-    Notifications NotificationConfig        `yaml:"notifications"`
-    Settings      Settings                  `yaml:"settings"`
+    PRFilters     PRFilters               `yaml:"pr_filters"`
+    Repositories  map[string][]Repository `yaml:"repositories"`
+    Auth          Auth                    `yaml:"auth"`
+    Notifications Notifications           `yaml:"notifications"`
+    Behavior      Behavior                `yaml:"behavior"`
 }
 ```
 
@@ -73,7 +73,7 @@ type Provider interface {
 
 ```text
 pkg/providers/
-├── common/           # Shared interfaces and utilities
+├── common/          # Shared interfaces and utilities
 ├── github/          # GitHub API integration
 ├── gitlab/          # GitLab API integration
 └── bitbucket/       # Bitbucket API integration
@@ -151,30 +151,14 @@ func NewCheckCommand() *cobra.Command {
 }
 ```
 
-**UI Utilities (`internal/cli/ui/`)**
-
-- Progress bars and spinners
-- Colored terminal output
-- Interactive prompts
-- Table formatting
-
 #### MCP Implementation (`internal/mcp/`)
 
-**Tool Handlers (`internal/mcp/tools/`)**
+**MCP Server (`internal/mcp/server.go`)**
 
-```go
-type CheckPRsTool struct {
-    executor *executor.Executor
-}
-
-func (t *CheckPRsTool) Execute(ctx context.Context, args map[string]interface{}) (*mcp.ToolResult, error)
-```
-
-**Resource Providers (`internal/mcp/resources/`)**
-
-- Configuration access
-- Repository statistics
-- Environment status
+- Implements MCP protocol server
+- Handles tool execution requests
+- Provides configuration and repository resources
+- Integrates with shared executor for PR operations
 
 ## Design Principles
 

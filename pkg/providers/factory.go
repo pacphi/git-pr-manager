@@ -67,6 +67,44 @@ func (f *Factory) CreateProviders() (map[string]common.Provider, error) {
 	return providers, nil
 }
 
+// CreateProvidersForDiscovery creates providers for repository discovery without requiring pre-configured repositories
+func (f *Factory) CreateProvidersForDiscovery() (map[string]common.Provider, error) {
+	providers := make(map[string]common.Provider)
+
+	// Create GitHub provider if token is available
+	if f.resolveEnvVar(f.config.Auth.GitHub.Token) != "" {
+		provider, err := f.createGitHubProvider()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitHub provider: %w", err)
+		}
+		providers["github"] = provider
+	}
+
+	// Create GitLab provider if token is available
+	if f.resolveEnvVar(f.config.Auth.GitLab.Token) != "" {
+		provider, err := f.createGitLabProvider()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create GitLab provider: %w", err)
+		}
+		providers["gitlab"] = provider
+	}
+
+	// Create Bitbucket provider if credentials are available
+	if f.resolveEnvVar(f.config.Auth.Bitbucket.Username) != "" && f.resolveEnvVar(f.config.Auth.Bitbucket.AppPassword) != "" {
+		provider, err := f.createBitbucketProvider()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Bitbucket provider: %w", err)
+		}
+		providers["bitbucket"] = provider
+	}
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("no providers configured - ensure authentication tokens are set")
+	}
+
+	return providers, nil
+}
+
 // createGitHubProvider creates a GitHub provider instance
 func (f *Factory) createGitHubProvider() (common.Provider, error) {
 	token := f.resolveEnvVar(f.config.Auth.GitHub.Token)

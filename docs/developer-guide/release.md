@@ -52,7 +52,7 @@ The project uses a tag-based release workflow (`.github/workflows/release.yml`):
 ### Workflow Steps
 
 1. **Checkout**: Fetch source code with full history
-2. **Setup**: Configure Go 1.24.6 with module caching
+2. **Setup**: Configure Go 1.24.0+ with module caching
 3. **Test**: Run full test suite
 4. **Build**: Cross-compile for all platforms using `make cross-compile`
 5. **Checksum**: Generate SHA256SUMS for all binaries
@@ -61,11 +61,13 @@ The project uses a tag-based release workflow (`.github/workflows/release.yml`):
 
 ### Artifacts Produced
 
-- `agent-manager-darwin-amd64` - macOS Intel
-- `agent-manager-darwin-arm64` - macOS Apple Silicon
-- `agent-manager-linux-amd64` - Linux Intel/AMD
-- `agent-manager-linux-arm64` - Linux ARM
-- `agent-manager-windows-amd64.exe` - Windows Intel/AMD
+- `git-pr-cli-darwin-amd64` - macOS Intel CLI
+- `git-pr-cli-darwin-arm64` - macOS Apple Silicon CLI
+- `git-pr-cli-linux-amd64` - Linux Intel/AMD CLI
+- `git-pr-cli-linux-arm64` - Linux ARM CLI
+- `git-pr-cli-windows-amd64.exe` - Windows Intel/AMD CLI
+- `git-pr-mcp-darwin-amd64` - macOS Intel MCP Server
+- `git-pr-mcp-linux-amd64` - Linux Intel/AMD MCP Server
 - `SHA256SUMS` - Checksums for verification
 
 ## Manual Release Process
@@ -76,7 +78,7 @@ Ensure you have the required tools:
 
 ```bash
 # Required
-go version          # Go 1.24.6+
+go version          # Go 1.24.0+
 git --version       # Git for tagging
 gh --version        # GitHub CLI for monitoring
 
@@ -182,8 +184,8 @@ gh release view v1.2.3
 ```bash
 # Download and test a binary
 gh release download v1.2.3 --pattern "*linux-amd64*"
-chmod +x agent-manager-linux-amd64
-./agent-manager-linux-amd64 version
+chmod +x git-pr-cli-linux-amd64
+./git-pr-cli-linux-amd64 --version
 ```
 
 **Verify checksums:**
@@ -321,13 +323,13 @@ git push origin :refs/tags/v1.2.3
 - View workflow logs: `gh run view <run-id> --log`
 - Check release status: `gh release view v1.2.3`
 - Review build artifacts: `gh run download <run-id>`
-- Validate configuration: `./bin/agent-manager validate`
+- Validate configuration: `./bin/git-pr-cli validate`
 
 ## Integration with Build System
 
 ### Makefile Targets
 
-Agent Manager's `Makefile` provides several release-related targets:
+The project's `Makefile` provides several release-related targets:
 
 ```bash
 make cross-compile  # Build for all platforms
@@ -335,6 +337,7 @@ make release        # Create release artifacts (tarballs)
 make clean          # Remove build artifacts
 make test           # Run test suite
 make validate       # Validate configuration
+make ci             # Run all CI checks (fmt, vet, lint, deadcode, test)
 ```
 
 ### Build Configuration

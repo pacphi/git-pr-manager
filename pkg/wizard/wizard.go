@@ -151,7 +151,7 @@ func (w *Wizard) discoverRepositories(ctx context.Context) error {
 	}
 
 	factory := providers.NewFactory(tempConfig)
-	providerMap, err := factory.CreateProviders()
+	providerMap, err := factory.CreateProvidersForDiscovery()
 	if err != nil {
 		return fmt.Errorf("failed to create providers: %w", err)
 	}
