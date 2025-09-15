@@ -1,4 +1,4 @@
-.PHONY: help build test clean install deps fmt lint vet deadcode ci cross-compile release dev
+.PHONY: help build test clean install deps fmt lint vet deadcode gitleaks ci cross-compile release dev
 .PHONY: check merge setup validate config stats test-system run-cli run-mcp
 
 # Build variables
@@ -38,13 +38,13 @@ help:
 	@grep -E '^## (build|test|clean|run)' Makefile | sed 's/##//' | column -t -s ':'
 	@echo ""
 	@echo "${GREEN}Setup and Installation:${NC}"
-	@grep -E '^## (install|setup|deps)' Makefile | sed 's/##//' | column -t -s ':'
+	@grep -E '^## (install|setup|deps)' Makefile | sed 's/##//' | column -t -s ':' | head -12
 	@echo ""
 	@echo "${GREEN}Core Operations:${NC}"
 	@grep -E '^## (check|merge|validate|watch)' Makefile | sed 's/##//' | column -t -s ':'
 	@echo ""
 	@echo "${GREEN}Quality and CI:${NC}"
-	@grep -E '^## (fmt|lint|vet|ci)' Makefile | sed 's/##//' | column -t -s ':'
+	@grep -E '^## (fmt|lint|vet|gitleaks|ci)' Makefile | sed 's/##//' | column -t -s ':'
 	@echo ""
 	@echo "${GREEN}Distribution:${NC}"
 	@grep -E '^## (cross-compile|release)' Makefile | sed 's/##//' | column -t -s ':'
@@ -93,8 +93,15 @@ install:
 		make install-linux-dnf; \
 	elif command -v pacman >/dev/null 2>&1; then \
 		make install-linux-pacman; \
+	elif command -v winget >/dev/null 2>&1; then \
+		make install-windows-winget; \
+	elif command -v choco >/dev/null 2>&1; then \
+		make install-windows-choco; \
+	elif command -v scoop >/dev/null 2>&1; then \
+		make install-windows-scoop; \
 	else \
 		echo "${RED}Unsupported package manager. Please install jq, yq, and curl manually.${NC}"; \
+		echo "For Windows: Install winget, chocolatey, or scoop package manager"; \
 		exit 1; \
 	fi
 
@@ -141,6 +148,27 @@ install-linux-pacman:
 	@chmod +x /usr/local/bin/yq
 	@echo "${GREEN}Linux (pacman) dependencies installed${NC}"
 
+## install-windows-winget: Install dependencies on Windows using winget
+install-windows-winget:
+	@echo "${BLUE}Installing dependencies via winget...${NC}"
+	@winget install --id Microsoft.PowerShell --silent
+	@winget install --id stedolan.jq --silent
+	@winget install --id mikefarah.yq --silent
+	@winget install --id cURL.cURL --silent
+	@echo "${GREEN}Windows (winget) dependencies installed${NC}"
+
+## install-windows-choco: Install dependencies on Windows using Chocolatey
+install-windows-choco:
+	@echo "${BLUE}Installing dependencies via chocolatey...${NC}"
+	@choco install jq yq curl -y
+	@echo "${GREEN}Windows (chocolatey) dependencies installed${NC}"
+
+## install-windows-scoop: Install dependencies on Windows using Scoop
+install-windows-scoop:
+	@echo "${BLUE}Installing dependencies via scoop...${NC}"
+	@scoop install jq yq curl
+	@echo "${GREEN}Windows (scoop) dependencies installed${NC}"
+
 ## deps: Download and tidy Go dependencies
 deps:
 	@echo "${BLUE}Downloading Go dependencies...${NC}"
@@ -186,8 +214,42 @@ deadcode:
 		echo "  go install golang.org/x/tools/cmd/deadcode@latest"; \
 	fi
 
-## ci: Run all CI checks (fmt, vet, lint, deadcode, test)
-ci: fmt vet lint deadcode test
+## gitleaks: Run gitleaks secret scanning
+gitleaks:
+	@echo "${BLUE}Running gitleaks secret scanning...${NC}"
+	@if command -v gitleaks >/dev/null 2>&1; then \
+		gitleaks dir .; \
+	else \
+		echo "${YELLOW}gitleaks not installed. Install with:${NC}"; \
+		if command -v brew >/dev/null 2>&1; then \
+			echo "  brew install gitleaks"; \
+		elif command -v apt-get >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v pacman >/dev/null 2>&1; then \
+			echo "  # Download latest release from GitHub:"; \
+			echo "  curl -sSfL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep browser_download_url | grep linux_x64 | cut -d '\"' -f 4 | xargs curl -sSfL -o gitleaks.tar.gz"; \
+			echo "  tar -xzf gitleaks.tar.gz && sudo mv gitleaks /usr/local/bin/"; \
+		elif command -v winget >/dev/null 2>&1; then \
+			echo "  winget install --id trufflesecurity.gitleaks"; \
+		elif command -v choco >/dev/null 2>&1; then \
+			echo "  choco install gitleaks"; \
+		elif command -v scoop >/dev/null 2>&1; then \
+			echo "  scoop install gitleaks"; \
+		else \
+			echo "  # Download from releases page: https://github.com/gitleaks/gitleaks/releases"; \
+			echo "  # For Windows: Download .exe from releases page"; \
+			echo "  # Or use Docker: docker run --rm -v \$$(pwd):/path ghcr.io/gitleaks/gitleaks:latest dir /path"; \
+		fi; \
+	fi
+
+## ci: Run all CI checks (fmt, vet, lint, deadcode, gitleaks, test)
+ci: fmt vet lint deadcode gitleaks test
 	@echo "${GREEN}All CI checks completed successfully${NC}"
 
 ## run-cli: Build and run the CLI
@@ -283,7 +345,26 @@ dev:
 	@if command -v entr >/dev/null 2>&1; then \
 		find . -name "*.go" | entr -r make run-cli; \
 	else \
-		echo "${YELLOW}entr not installed. Install with: brew install entr (macOS) or apt-get install entr (Linux)${NC}"; \
+		echo "${YELLOW}entr not installed. Install with:${NC}"; \
+		if command -v brew >/dev/null 2>&1; then \
+			echo "  brew install entr"; \
+		elif command -v apt-get >/dev/null 2>&1; then \
+			echo "  sudo apt-get install entr"; \
+		elif command -v yum >/dev/null 2>&1; then \
+			echo "  sudo yum install entr"; \
+		elif command -v dnf >/dev/null 2>&1; then \
+			echo "  sudo dnf install entr"; \
+		elif command -v pacman >/dev/null 2>&1; then \
+			echo "  sudo pacman -S entr"; \
+		elif command -v winget >/dev/null 2>&1; then \
+			echo "  # entr not available via winget - use WSL or alternative file watcher"; \
+		elif command -v choco >/dev/null 2>&1; then \
+			echo "  # entr not available via chocolatey - use WSL or alternative file watcher"; \
+		elif command -v scoop >/dev/null 2>&1; then \
+			echo "  # entr not available via scoop - use WSL or alternative file watcher"; \
+		else \
+			echo "  # Platform not detected - install entr manually or use alternative file watcher"; \
+		fi; \
 		exit 1; \
 	fi
 

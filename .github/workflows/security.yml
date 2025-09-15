@@ -126,13 +126,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Run TruffleHog OSS
-      uses: trufflesecurity/trufflehog@v3.84.2
-      with:
-        path: ./
-        base: main
-        head: HEAD
-        extra_args: --debug --only-verified
+    - name: Run gitleaks secret scanner
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   license-check:
     name: License Check
