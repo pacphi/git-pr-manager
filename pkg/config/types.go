@@ -22,13 +22,14 @@ type PRFilters struct {
 
 // Repository represents a single repository configuration
 type Repository struct {
-	Name          string        `yaml:"name" validate:"required"`
-	AutoMerge     bool          `yaml:"auto_merge"`
-	MergeStrategy MergeStrategy `yaml:"merge_strategy,omitempty"`
-	SkipLabels    []string      `yaml:"skip_labels,omitempty"`
-	Branch        string        `yaml:"branch,omitempty"`
-	RequireChecks bool          `yaml:"require_checks"`
-	MinApprovals  int           `yaml:"min_approvals,omitempty"`
+	Name           string        `yaml:"name" validate:"required"`
+	AutoMerge      bool          `yaml:"auto_merge"`
+	MergeStrategy  MergeStrategy `yaml:"merge_strategy,omitempty"`
+	SkipLabels     []string      `yaml:"skip_labels,omitempty"`
+	Branch         string        `yaml:"branch,omitempty"`
+	RequireChecks  bool          `yaml:"require_checks"`
+	MinApprovals   int           `yaml:"min_approvals,omitempty"`
+	DeleteBranches bool          `yaml:"delete_branches"`
 }
 
 // MergeStrategy defines how PRs should be merged
@@ -98,6 +99,7 @@ type Behavior struct {
 	WatchInterval   string        `yaml:"watch_interval"`
 	RequireApproval bool          `yaml:"require_approval"`
 	MergeDelay      time.Duration `yaml:"merge_delay"`
+	DeleteBranches  bool          `yaml:"delete_branches"`
 }
 
 // RateLimit contains rate limiting configuration

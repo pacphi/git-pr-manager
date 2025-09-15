@@ -38,7 +38,15 @@ func NewMergeCommand() *cobra.Command {
 		Long: `Merge pull requests that are ready across all configured repositories.
 
 This command first checks the status of all PRs, then merges those that meet
-the configured criteria and are ready for merging.`,
+the configured criteria and are ready for merging.
+
+Branch deletion can be controlled through:
+  1. CLI flag (--delete-branches) - highest priority
+  2. Repository-level config (delete_branches: true) - medium priority
+  3. Global behavior config (behavior.delete_branches: true) - lowest priority
+  4. Default behavior (false) - if none specified
+
+All providers (GitHub, GitLab, Bitbucket) support automatic branch cleanup.`,
 		Example: `  # Merge all ready PRs (dry run by default)
   git-pr-cli merge --dry-run
 
@@ -64,7 +72,7 @@ the configured criteria and are ready for merging.`,
 	cmd.Flags().StringVar(&flags.MaxAge, "max-age", "", "Maximum age of PRs to consider (e.g., 7d, 24h)")
 	cmd.Flags().BoolVar(&flags.DryRun, "dry-run", false, "Show what would be merged without actually merging")
 	cmd.Flags().BoolVar(&flags.Force, "force", false, "Force merge even if PR is not ready")
-	cmd.Flags().BoolVar(&flags.DeleteBranches, "delete-branches", false, "Delete branches after successful merge")
+	cmd.Flags().BoolVar(&flags.DeleteBranches, "delete-branches", false, "Delete source branches after successful merge (overrides config)")
 	cmd.Flags().StringVar(&flags.CustomMessage, "message", "", "Custom commit message for merge")
 	cmd.Flags().BoolVar(&flags.RequireApproval, "require-approval", false, "Require manual approval before merging")
 	cmd.Flags().BoolVar(&flags.RequireChecks, "require-checks", false, "Require all status checks to pass")
@@ -213,9 +221,17 @@ func outputMergeResults(results []merge.MergeResult, dryRun bool) {
 		} else if result.Success {
 			successful++
 			if dryRun {
-				fmt.Printf("✅ WOULD MERGE: PR #%d in %s using %s\n", result.PullRequest, result.Repository, result.MergeMethod)
+				branchMsg := ""
+				if result.BranchDeleted {
+					branchMsg = " (would delete branch)"
+				}
+				fmt.Printf("✅ WOULD MERGE: PR #%d in %s using %s%s\n", result.PullRequest, result.Repository, result.MergeMethod, branchMsg)
 			} else {
-				fmt.Printf("✅ MERGED: PR #%d in %s using %s\n", result.PullRequest, result.Repository, result.MergeMethod)
+				branchMsg := ""
+				if result.BranchDeleted {
+					branchMsg = " (branch deleted)"
+				}
+				fmt.Printf("✅ MERGED: PR #%d in %s using %s%s\n", result.PullRequest, result.Repository, result.MergeMethod, branchMsg)
 			}
 		} else {
 			failed++

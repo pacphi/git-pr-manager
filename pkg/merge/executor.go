@@ -30,18 +30,19 @@ func NewExecutor(providers map[string]common.Provider, cfg *config.Config) *Exec
 
 // MergeResult contains the result of a merge operation
 type MergeResult struct {
-	Provider    string    `json:"provider"`
-	Repository  string    `json:"repository"`
-	PullRequest int       `json:"pull_request"`
-	Title       string    `json:"title"`
-	Author      string    `json:"author"`
-	MergeMethod string    `json:"merge_method"`
-	MergedAt    time.Time `json:"merged_at"`
-	CommitSHA   string    `json:"commit_sha,omitempty"`
-	Success     bool      `json:"success"`
-	Error       error     `json:"error,omitempty"`
-	Skipped     bool      `json:"skipped"`
-	Reason      string    `json:"reason,omitempty"`
+	Provider      string    `json:"provider"`
+	Repository    string    `json:"repository"`
+	PullRequest   int       `json:"pull_request"`
+	Title         string    `json:"title"`
+	Author        string    `json:"author"`
+	MergeMethod   string    `json:"merge_method"`
+	MergedAt      time.Time `json:"merged_at"`
+	CommitSHA     string    `json:"commit_sha,omitempty"`
+	Success       bool      `json:"success"`
+	Error         error     `json:"error,omitempty"`
+	Skipped       bool      `json:"skipped"`
+	Reason        string    `json:"reason,omitempty"`
+	BranchDeleted bool      `json:"branch_deleted"`
 }
 
 // MergeOptions contains options for merge operations
@@ -209,11 +210,20 @@ func (e *Executor) mergePR(ctx context.Context, provider common.Provider, repo c
 	mergeMethod := e.determineMergeMethod(*repoConfig)
 	result.MergeMethod = string(mergeMethod)
 
+	// Determine if branches should be deleted (precedence: CLI flag > repo config > global config > false)
+	deleteBranches := opts.DeleteBranches
+	if !deleteBranches && repoConfig.DeleteBranches {
+		deleteBranches = true
+	}
+	if !deleteBranches && e.config.Behavior.DeleteBranches {
+		deleteBranches = true
+	}
+
 	// Prepare merge options
 	mergeOpts := common.MergeOptions{
 		Method:       mergeMethod,
 		SHA:          pr.HeadSHA,
-		DeleteBranch: opts.DeleteBranches,
+		DeleteBranch: deleteBranches,
 	}
 
 	// Set commit title and message
@@ -222,6 +232,7 @@ func (e *Executor) mergePR(ctx context.Context, provider common.Provider, repo c
 	if opts.DryRun {
 		logger.Infof("[DRY RUN] Would merge PR with method %s", mergeMethod)
 		result.Success = true
+		result.BranchDeleted = deleteBranches
 		result.Reason = "dry run - would merge"
 		return result
 	}
@@ -237,6 +248,7 @@ func (e *Executor) mergePR(ctx context.Context, provider common.Provider, repo c
 
 	result.Success = true
 	result.MergedAt = time.Now()
+	result.BranchDeleted = deleteBranches
 	result.Reason = "successfully merged"
 
 	logger.Infof("Successfully merged PR #%d", pr.Number)
