@@ -91,8 +91,6 @@ Once configured and Claude Code is restarted:
 **Configuration Management:**
 > "Validate my current configuration and show me any issues"
 
-**Setup and Maintenance:**
-> "Test my notification setup and show me the results"
 
 ## Verification
 

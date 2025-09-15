@@ -123,8 +123,6 @@ Once configured and Windsurf is restarted:
 **Configuration Tasks:**
 > "Validate my Git PR automation setup and tell me if there are any issues"
 
-**Maintenance:**
-> "Test my Slack notifications and show me the results"
 
 ## Verification
 

@@ -113,8 +113,6 @@ Once configured and IDE is restarted:
 **Configuration Management:**
 > "Validate my Git PR automation configuration and show me any issues that need to be fixed"
 
-**Testing:**
-> "Test my notification setup for both Slack and email and show me the results"
 
 ## Verification
 

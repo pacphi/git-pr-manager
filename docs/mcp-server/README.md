@@ -22,8 +22,6 @@ The MCP server exposes the following tools:
 
 - `setup_repositories` - Run interactive setup wizard to configure repositories
 - `validate_configuration` - Validate configuration file and connectivity
-- `backup_configuration` - Backup current configuration
-- `restore_configuration` - Restore configuration from backup
 
 #### PR Management
 
@@ -31,12 +29,6 @@ The MCP server exposes the following tools:
 - `merge_pull_requests` - Merge ready pull requests
 - `watch_repositories` - Monitor PR status continuously
 - `get_repository_statistics` - Get detailed repository statistics
-
-#### System Management
-
-- `test_notifications` - Test Slack and email notification setup
-- `check_dependencies` - Verify required dependencies
-- `install_dependencies` - Install missing dependencies
 
 ### Available Resources
 
@@ -110,20 +102,17 @@ Once configured, interact with the tool through natural language:
 - "Merge all ready dependabot PRs"
 - "Show me repository statistics"
 - "Validate my configuration"
-- "Test my notification setup"
 
 ### Advanced Usage
 
 - "Check PRs only for GitHub repositories"
 - "Do a dry run of merging PRs to see what would happen"
 - "Show me what environment variables are missing"
-- "Backup my current configuration"
 
 ### With Parameters
 
 - "Check PRs and show detailed output"
 - "Merge PRs for repositories matching pattern 'web-*'"
-- "Install dependencies and validate setup"
 
 ## Configuration Examples
 
@@ -185,7 +174,7 @@ The MCP server inherits environment variables from its parent process. You can c
    git-pr-cli validate --check-auth
    ```
 
-2. **Check dependencies:**
+2. **Check repositories:**
 
    ```bash
    git-pr-cli validate --check-repos

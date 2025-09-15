@@ -74,12 +74,14 @@ git-pr-cli watch --interval=5m
 | Command | Description |
 |---------|-------------|
 | `check` | Check pull request status across repositories |
+| `completion` | Generate the autocompletion script for the specified shell |
+| `help` | Help about any command |
+| `info` | Show configuration and provider information |
 | `merge` | Merge ready pull requests |
 | `setup wizard` | Interactive configuration setup |
-| `validate` | Validate configuration and connectivity |
 | `stats` | Show repository and PR statistics |
+| `validate` | Validate configuration and connectivity |
 | `watch` | Continuously monitor pull requests |
-| `test` | Test system functionality and integrations |
 
 ## 📖 Documentation
 
@@ -166,6 +168,7 @@ make lint
 ### Technology Stack
 
 - **CLI**: Cobra + Viper
+- **MCP Server**: Model Context Protocol for AI assistant integration
 - **Providers**: Official Go clients (go-github, go-gitlab, go-bitbucket)
 - **HTTP**: Resty with retry logic and rate limiting
 - **Configuration**: YAML with environment variable support
@@ -216,6 +219,7 @@ Built with these excellent Go libraries:
 
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
 - [Viper](https://github.com/spf13/viper) - Configuration management
+- [mcp-go](https://github.com/mark3labs/mcp-go) - Model Context Protocol implementation
 - [go-github](https://github.com/google/go-github) - GitHub API client
 - [go-gitlab](https://github.com/xanzy/go-gitlab) - GitLab API client
 - [go-resty](https://github.com/go-resty/resty) - HTTP client

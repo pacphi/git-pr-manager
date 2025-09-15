@@ -119,8 +119,6 @@ Once configured and Zed is restarted:
 **Configuration:**
 > "Validate my Git PR automation configuration and show any issues"
 
-**Testing:**
-> "Test my notification setup and show me the results"
 
 ## Verification
 
