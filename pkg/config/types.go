@@ -91,12 +91,13 @@ type EmailConfig struct {
 
 // Behavior contains behavioral configuration
 type Behavior struct {
-	RateLimit       RateLimit `yaml:"rate_limit"`
-	Retry           Retry     `yaml:"retry"`
-	Concurrency     int       `yaml:"concurrency"`
-	DryRun          bool      `yaml:"dry_run"`
-	WatchInterval   string    `yaml:"watch_interval"`
-	RequireApproval bool      `yaml:"require_approval"`
+	RateLimit       RateLimit     `yaml:"rate_limit"`
+	Retry           Retry         `yaml:"retry"`
+	Concurrency     int           `yaml:"concurrency"`
+	DryRun          bool          `yaml:"dry_run"`
+	WatchInterval   string        `yaml:"watch_interval"`
+	RequireApproval bool          `yaml:"require_approval"`
+	MergeDelay      time.Duration `yaml:"merge_delay"`
 }
 
 // RateLimit contains rate limiting configuration

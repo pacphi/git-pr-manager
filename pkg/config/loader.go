@@ -69,6 +69,28 @@ func (l *Loader) Load(configPath string) (*Config, error) {
 	config.PRFilters.SkipLabels = viper.GetStringSlice("pr_filters.skip_labels")
 	config.PRFilters.MaxAge = viper.GetString("pr_filters.max_age")
 
+	// Parse duration fields that viper.Unmarshal doesn't handle correctly
+	if timeoutStr := viper.GetString("behavior.rate_limit.timeout"); timeoutStr != "" {
+		if timeout, err := time.ParseDuration(timeoutStr); err == nil {
+			config.Behavior.RateLimit.Timeout = timeout
+		}
+	}
+	if backoffStr := viper.GetString("behavior.retry.backoff"); backoffStr != "" {
+		if backoff, err := time.ParseDuration(backoffStr); err == nil {
+			config.Behavior.Retry.Backoff = backoff
+		}
+	}
+	if maxBackoffStr := viper.GetString("behavior.retry.max_backoff"); maxBackoffStr != "" {
+		if maxBackoff, err := time.ParseDuration(maxBackoffStr); err == nil {
+			config.Behavior.Retry.MaxBackoff = maxBackoff
+		}
+	}
+	if mergeDelayStr := viper.GetString("behavior.merge_delay"); mergeDelayStr != "" {
+		if mergeDelay, err := time.ParseDuration(mergeDelayStr); err == nil {
+			config.Behavior.MergeDelay = mergeDelay
+		}
+	}
+
 	// Process environment variables for auth
 	if err := l.processEnvVars(&config); err != nil {
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
@@ -229,6 +251,10 @@ func (l *Loader) setDefaults(config *Config) {
 
 	if config.Behavior.WatchInterval == "" {
 		config.Behavior.WatchInterval = getEnvOrDefault("WATCH_INTERVAL", "30s")
+	}
+
+	if config.Behavior.MergeDelay == 0 {
+		config.Behavior.MergeDelay = getEnvDurationOrDefault("MERGE_DELAY", 5*time.Second)
 	}
 
 	// Set default GitLab URL if not provided

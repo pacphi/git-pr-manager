@@ -119,6 +119,9 @@ behavior:
   # Require manual approval before merging
   require_approval: false
 
+  # Delay between merges within the same repository (prevents "base branch modified" errors)
+  merge_delay: "5s"
+
 # Example environment variables to set:
 # export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
 # export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"

@@ -53,21 +53,20 @@ type MergeOptions struct {
 	RequireApproval bool
 }
 
-// MergePRs merges all ready PRs from the provided results with parallel processing
+// MergePRs merges all ready PRs from the provided results with sequential processing per repository
 func (e *Executor) MergePRs(ctx context.Context, results []pr.ProcessResult, opts MergeOptions) ([]MergeResult, error) {
 	e.logger.Info("Starting PR merge operations")
 
-	// Collect merge tasks
-	var mergeTasks []func(context.Context) error
-
 	// Pre-allocate mergeResults with estimated capacity
-	// Each result can have multiple PRs, so estimate total capacity
 	totalEstimatedPRs := 0
 	for _, result := range results {
 		totalEstimatedPRs += len(result.PullRequests)
 	}
 	mergeResults := make([]MergeResult, 0, totalEstimatedPRs)
 	resultsChan := make(chan MergeResult, 100) // Buffer for results
+
+	// Group merge operations by repository to ensure sequential processing per repo
+	repositoryTasks := make(map[string][]func(context.Context) error)
 
 	for _, result := range results {
 		if result.Error != nil {
@@ -80,6 +79,8 @@ func (e *Executor) MergePRs(ctx context.Context, results []pr.ProcessResult, opt
 			e.logger.Warnf("Provider %s not available, skipping", result.Provider)
 			continue
 		}
+
+		repoKey := result.Repository.FullName
 
 		for _, processedPR := range result.PullRequests {
 			if processedPR.Error != nil {
@@ -113,24 +114,54 @@ func (e *Executor) MergePRs(ctx context.Context, results []pr.ProcessResult, opt
 				continue
 			}
 
-			// Create merge task for parallel execution
+			// Create merge task and group by repository
 			// Capture variables for closure
 			providerCopy := provider
 			repoRef := result.Repository
 			prRef := processedPR.PullRequest
-			mergeTasks = append(mergeTasks, func(ctx context.Context) error {
+			task := func(ctx context.Context) error {
 				mergeResult := e.mergePR(ctx, providerCopy, repoRef, prRef, opts)
 				resultsChan <- mergeResult
 				return nil // Don't fail the entire batch on individual merge failures
-			})
+			}
+
+			repositoryTasks[repoKey] = append(repositoryTasks[repoKey], task)
 		}
 	}
 
-	// Process merge tasks in parallel if there are any
-	if len(mergeTasks) > 0 {
+	// Create parallel tasks for each repository (repositories run in parallel, PRs within each repo run sequentially)
+	repoTasks := make([]func(context.Context) error, 0, len(repositoryTasks))
+	for repoName, repoMergeTasks := range repositoryTasks {
+		// Capture variables for closure
+		repoTasksCopy := repoMergeTasks
+		repoNameCopy := repoName
+
+		repoTask := func(ctx context.Context) error {
+			e.logger.Infof("Processing %d PRs sequentially for repository %s", len(repoTasksCopy), repoNameCopy)
+
+			for i, task := range repoTasksCopy {
+				if err := task(ctx); err != nil {
+					e.logger.WithError(err).Errorf("Failed to execute merge task %d for repository %s", i, repoNameCopy)
+				}
+
+				// Add delay between merges within the same repository (except for the last one)
+				// Skip delay in dry-run mode since no actual merges are happening
+				if i < len(repoTasksCopy)-1 && e.config.Behavior.MergeDelay > 0 && !opts.DryRun {
+					e.logger.Debugf("Waiting %v before next merge in repository %s", e.config.Behavior.MergeDelay, repoNameCopy)
+					time.Sleep(e.config.Behavior.MergeDelay)
+				}
+			}
+			return nil
+		}
+
+		repoTasks = append(repoTasks, repoTask)
+	}
+
+	// Execute repository tasks in parallel (each repo processes its PRs sequentially)
+	if len(repoTasks) > 0 {
 		executor := utils.NewParallelExecutor(e.config.Behavior.Concurrency)
-		if err := executor.Execute(ctx, mergeTasks); err != nil {
-			e.logger.WithError(err).Error("Error in parallel merge execution")
+		if err := executor.Execute(ctx, repoTasks); err != nil {
+			e.logger.WithError(err).Error("Error in repository merge execution")
 			// Continue to collect results even if some tasks failed
 		}
 	}
