@@ -193,7 +193,6 @@ func configToRetryConfig(retryConfig config.Retry) *RetryConfig {
 	}
 }
 
-
 // BehaviorStats contains statistics about behavior management
 type BehaviorStats struct {
 	RetryConfig      RetryConfigStats            `json:"retry_config"`

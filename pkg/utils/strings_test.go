@@ -117,6 +117,36 @@ func TestStringUtils_ParseDuration(t *testing.T) {
 			expected:    -5 * time.Second,
 			expectError: false,
 		},
+		{
+			name:        "days",
+			input:       "5d",
+			expected:    5 * 24 * time.Hour,
+			expectError: false,
+		},
+		{
+			name:        "weeks",
+			input:       "2w",
+			expected:    2 * 7 * 24 * time.Hour,
+			expectError: false,
+		},
+		{
+			name:        "years",
+			input:       "1y",
+			expected:    365 * 24 * time.Hour,
+			expectError: false,
+		},
+		{
+			name:        "fractional days",
+			input:       "1.5d",
+			expected:    time.Duration(1.5 * float64(24*time.Hour)),
+			expectError: false,
+		},
+		{
+			name:        "30 days",
+			input:       "30d",
+			expected:    30 * 24 * time.Hour,
+			expectError: false,
+		},
 	}
 
 	su := NewStringUtils()

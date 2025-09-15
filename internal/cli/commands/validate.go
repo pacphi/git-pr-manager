@@ -99,7 +99,7 @@ func runValidate(ctx context.Context, flags ValidateFlags) error {
 			cfg, err = LoadConfig()
 		}
 		if err != nil {
-			return fmt.Errorf("configuration validation failed: %w", err)
+			return HandleConfigError(err, "validate")
 		}
 
 		// Create validator and validate configuration structure
@@ -141,7 +141,7 @@ func runValidate(ctx context.Context, flags ValidateFlags) error {
 		// Still need to load config for other validations
 		cfg, err = LoadConfig()
 		if err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
+			return HandleConfigError(err, "validate")
 		}
 	}
 

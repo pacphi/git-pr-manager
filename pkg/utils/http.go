@@ -129,8 +129,6 @@ func RateLimitedHTTPClient(requestsPerSecond float64, burst int) *resty.Client {
 	return NewHTTPClient(config)
 }
 
-
-
 // HTTPClient provides a simple interface for HTTP operations
 type HTTPClient struct {
 	client *resty.Client

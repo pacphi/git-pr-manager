@@ -129,7 +129,7 @@ func runStats(ctx context.Context, flags StatsFlags) error {
 	// Load configuration
 	cfg, err := LoadConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return HandleConfigError(err, "stats")
 	}
 
 	// Create providers (filtered by provider if specified)

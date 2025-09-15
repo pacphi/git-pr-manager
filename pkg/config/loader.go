@@ -13,6 +13,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ConfigValidationError represents a user-facing configuration validation error
+type ConfigValidationError struct {
+	Message string
+}
+
+func (e *ConfigValidationError) Error() string {
+	return e.Message
+}
+
 // Loader handles configuration loading and validation
 type Loader struct {
 	validator *validator.Validate
@@ -35,12 +44,15 @@ func (l *Loader) Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("no configuration file found")
 	}
 
-	// Load config file
-	viper.SetConfigFile(configPath)
-	viper.SetConfigType("yaml")
+	// Only read the config file if viper hasn't already loaded it
+	if viper.ConfigFileUsed() != configPath {
+		// Load config file
+		viper.SetConfigFile(configPath)
+		viper.SetConfigType("yaml")
 
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+		if err := viper.ReadInConfig(); err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+		}
 	}
 
 	// Allow environment variables to override config
@@ -52,6 +64,11 @@ func (l *Loader) Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	// Fix viper.Unmarshal issues by manually extracting problematic fields
+	config.PRFilters.AllowedActors = viper.GetStringSlice("pr_filters.allowed_actors")
+	config.PRFilters.SkipLabels = viper.GetStringSlice("pr_filters.skip_labels")
+	config.PRFilters.MaxAge = viper.GetString("pr_filters.max_age")
+
 	// Process environment variables for auth
 	if err := l.processEnvVars(&config); err != nil {
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
@@ -60,9 +77,9 @@ func (l *Loader) Load(configPath string) (*Config, error) {
 	// Set defaults
 	l.setDefaults(&config)
 
-	// Validate configuration
-	if err := l.validator.Struct(&config); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+	// Validate configuration with helpful error messages
+	if err := l.validateWithHelpfulErrors(&config); err != nil {
+		return nil, err
 	}
 
 	// Additional business logic validation
@@ -251,18 +268,24 @@ func (l *Loader) validateBusinessRules(config *Config) error {
 	}
 
 	// Validate that repositories exist only for providers with authentication
-	for provider := range config.Repositories {
+	for provider, repos := range config.Repositories {
+		if len(repos) == 0 {
+			continue // Skip providers with no repositories
+		}
+
 		switch Provider(provider) {
 		case ProviderGitHub:
-			if config.Auth.GitHub.Token == "" {
+			if isEmptyOrTemplate(config.Auth.GitHub.Token, "${GITHUB_TOKEN}") {
 				return fmt.Errorf("GitHub repositories configured but no GitHub token provided")
 			}
 		case ProviderGitLab:
-			if config.Auth.GitLab.Token == "" {
+			if isEmptyOrTemplate(config.Auth.GitLab.Token, "${GITLAB_TOKEN}") {
 				return fmt.Errorf("GitLab repositories configured but no GitLab token provided")
 			}
 		case ProviderBitbucket:
-			if config.Auth.Bitbucket.Username == "" || config.Auth.Bitbucket.AppPassword == "" {
+			username := config.Auth.Bitbucket.Username
+			password := config.Auth.Bitbucket.AppPassword
+			if isEmptyOrTemplate(username, "${BITBUCKET_USERNAME}") || isEmptyOrTemplate(password, "${BITBUCKET_APP_PASSWORD}") {
 				return fmt.Errorf("bitbucket repositories configured but incomplete bitbucket authentication")
 			}
 		default:
@@ -285,6 +308,91 @@ func (l *Loader) validateBusinessRules(config *Config) error {
 		if len(config.Notifications.Email.To) == 0 {
 			return fmt.Errorf("email notifications enabled but no 'to' addresses provided")
 		}
+	}
+
+	return nil
+}
+
+// isEmptyOrTemplate checks if a value is empty or still contains an unexpanded environment variable template
+func isEmptyOrTemplate(value, template string) bool {
+	return value == "" || value == template
+}
+
+// validateWithHelpfulErrors performs validation with user-friendly error messages
+func (l *Loader) validateWithHelpfulErrors(config *Config) error {
+	// Check for missing required fields with helpful messages
+	var missingEnvVars []string
+	var missingConfigFields []string
+
+	// Check PR filters
+	if len(config.PRFilters.AllowedActors) == 0 {
+		missingConfigFields = append(missingConfigFields, "pr_filters.allowed_actors (must specify at least one trusted actor like 'dependabot[bot]')")
+	}
+
+	// Check repositories configuration
+	if len(config.Repositories) == 0 {
+		missingConfigFields = append(missingConfigFields, "repositories (must configure at least one repository)")
+	}
+
+	// Check authentication based on configured providers (only if they have repositories)
+	for provider, repos := range config.Repositories {
+		if len(repos) == 0 {
+			continue // Skip providers with no repositories
+		}
+
+		switch Provider(provider) {
+		case ProviderGitHub:
+			if isEmptyOrTemplate(config.Auth.GitHub.Token, "${GITHUB_TOKEN}") {
+				missingEnvVars = append(missingEnvVars, "GITHUB_TOKEN (required for GitHub repositories)")
+			}
+		case ProviderGitLab:
+			if isEmptyOrTemplate(config.Auth.GitLab.Token, "${GITLAB_TOKEN}") {
+				missingEnvVars = append(missingEnvVars, "GITLAB_TOKEN (required for GitLab repositories)")
+			}
+		case ProviderBitbucket:
+			username := config.Auth.Bitbucket.Username
+			password := config.Auth.Bitbucket.AppPassword
+			if isEmptyOrTemplate(username, "${BITBUCKET_USERNAME}") || isEmptyOrTemplate(password, "${BITBUCKET_APP_PASSWORD}") {
+				if isEmptyOrTemplate(username, "${BITBUCKET_USERNAME}") {
+					missingEnvVars = append(missingEnvVars, "BITBUCKET_USERNAME (required for Bitbucket repositories)")
+				}
+				if isEmptyOrTemplate(password, "${BITBUCKET_APP_PASSWORD}") {
+					missingEnvVars = append(missingEnvVars, "BITBUCKET_APP_PASSWORD (required for Bitbucket repositories)")
+				}
+			}
+		}
+	}
+
+	// Build helpful error message
+	if len(missingEnvVars) > 0 || len(missingConfigFields) > 0 {
+		var errorMsg strings.Builder
+		errorMsg.WriteString("Configuration validation failed:\n")
+
+		if len(missingConfigFields) > 0 {
+			errorMsg.WriteString("\nMissing or invalid configuration fields:\n")
+			for _, field := range missingConfigFields {
+				errorMsg.WriteString(fmt.Sprintf("  - %s\n", field))
+			}
+		}
+
+		if len(missingEnvVars) > 0 {
+			errorMsg.WriteString("\nMissing environment variables:\n")
+			for _, envVar := range missingEnvVars {
+				errorMsg.WriteString(fmt.Sprintf("  - %s\n", envVar))
+			}
+			errorMsg.WriteString("\nTo fix this, set the required environment variables:\n")
+			for _, envVar := range missingEnvVars {
+				envName := strings.Split(envVar, " ")[0]
+				errorMsg.WriteString(fmt.Sprintf("  export %s=\"your-token-here\"\n", envName))
+			}
+		}
+
+		return &ConfigValidationError{Message: errorMsg.String()}
+	}
+
+	// Run standard struct validation for other fields
+	if err := l.validator.Struct(config); err != nil {
+		return fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return nil

@@ -138,7 +138,6 @@ func (e *ProviderError) ShouldRetry() bool {
 	}
 }
 
-
 // ParseRepository parses a repository identifier (owner/name) from a string
 func ParseRepository(repoStr string) (owner, name string, err error) {
 	parts := strings.Split(repoStr, "/")
@@ -147,4 +146,3 @@ func ParseRepository(repoStr string) (owner, name string, err error) {
 	}
 	return parts[0], parts[1], nil
 }
-

@@ -29,6 +29,7 @@ type CheckFlags struct {
 	ShowSkipped   bool
 	ShowDetails   bool
 	ShowStatus    bool
+	ReadyOnly     bool
 }
 
 // NewCheckCommand creates the check command
@@ -70,6 +71,7 @@ actors and reports their status, including readiness for merging.`,
 	cmd.Flags().BoolVar(&flags.ShowSkipped, "show-skipped", false, "Show skipped PRs in output")
 	cmd.Flags().BoolVar(&flags.ShowDetails, "show-details", false, "Show detailed information about each PR")
 	cmd.Flags().BoolVar(&flags.ShowStatus, "show-status", false, "Show detailed status information")
+	cmd.Flags().BoolVar(&flags.ReadyOnly, "ready-only", false, "Show only PRs that are ready to merge")
 
 	return cmd
 }
@@ -81,7 +83,7 @@ func runCheckCommand(ctx context.Context, flags CheckFlags) error {
 	// Load configuration
 	cfg, err := LoadConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return HandleConfigError(err, "check")
 	}
 
 	// Create executor
@@ -140,16 +142,58 @@ func runCheckCommand(ctx context.Context, flags CheckFlags) error {
 	return outputCheckResults(results, flags)
 }
 
+// filterResults applies filtering logic based on flags and returns filtered results
+func filterResults(results []pr.ProcessResult, flags CheckFlags) []pr.ProcessResult {
+	var filteredResults []pr.ProcessResult
+
+	for _, result := range results {
+		if result.Error != nil {
+			// Always include error results
+			filteredResults = append(filteredResults, result)
+			continue
+		}
+
+		if len(result.PullRequests) == 0 {
+			if !flags.ReadyOnly {
+				// Include repos with no PRs only if not filtering for ready-only
+				filteredResults = append(filteredResults, result)
+			}
+			continue
+		}
+
+		// Filter PRs within this result
+		var filteredPRs []pr.ProcessedPR
+		for _, pr := range result.PullRequests {
+			if pr.Skipped && !flags.ShowSkipped {
+				continue
+			}
+			if flags.ReadyOnly && !pr.Ready {
+				continue
+			}
+			filteredPRs = append(filteredPRs, pr)
+		}
+
+		// Only include the result if it has displayable PRs
+		if len(filteredPRs) > 0 || !flags.ReadyOnly {
+			newResult := result
+			newResult.PullRequests = filteredPRs
+			filteredResults = append(filteredResults, newResult)
+		}
+	}
+
+	return filteredResults
+}
+
 func outputCheckResults(results []pr.ProcessResult, flags CheckFlags) error {
 	switch strings.ToLower(flags.Output) {
 	case "json":
-		return outputCheckResultsJSON(results)
+		return outputCheckResultsJSON(results, flags)
 	case "yaml":
-		return outputCheckResultsYAML(results)
+		return outputCheckResultsYAML(results, flags)
 	case "csv":
-		return outputCheckResultsCSV(results, flags.ShowSkipped)
+		return outputCheckResultsCSV(results, flags)
 	case "summary":
-		return outputCheckResultsSummary(results, flags.ShowSkipped)
+		return outputCheckResultsSummary(results, flags)
 	case "table":
 		fallthrough
 	default:
@@ -157,13 +201,14 @@ func outputCheckResults(results []pr.ProcessResult, flags CheckFlags) error {
 	}
 }
 
-func outputCheckResultsJSON(results []pr.ProcessResult) error {
+func outputCheckResultsJSON(results []pr.ProcessResult, flags CheckFlags) error {
+	filteredResults := filterResults(results, flags)
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(results)
+	return encoder.Encode(filteredResults)
 }
 
-func outputCheckResultsSummary(results []pr.ProcessResult, showSkipped bool) error {
+func outputCheckResultsSummary(results []pr.ProcessResult, flags CheckFlags) error {
 	logger := utils.GetGlobalLogger().WithComponent("check-summary")
 	totalRepos := 0
 	totalPRs := 0
@@ -181,6 +226,13 @@ func outputCheckResultsSummary(results []pr.ProcessResult, showSkipped bool) err
 		totalPRs += len(result.PullRequests)
 
 		for _, pr := range result.PullRequests {
+			if pr.Skipped && !flags.ShowSkipped {
+				continue
+			}
+			if flags.ReadyOnly && !pr.Ready {
+				continue
+			}
+
 			if pr.Error != nil {
 				errorCount++
 			} else if pr.Skipped {
@@ -198,7 +250,7 @@ func outputCheckResultsSummary(results []pr.ProcessResult, showSkipped bool) err
 	fmt.Printf("Total PRs: %d\n", totalPRs)
 	fmt.Printf("Ready PRs: %d\n", readyPRs)
 
-	if showSkipped {
+	if flags.ShowSkipped {
 		fmt.Printf("Skipped PRs: %d\n", skippedPRs)
 	}
 
@@ -275,28 +327,51 @@ func outputCheckResultsTable(results []pr.ProcessResult, flags CheckFlags) error
 		}
 
 		if len(result.PullRequests) == 0 {
-			// Print no PRs row
-			fmt.Printf("%-*s %-*s %-*s %-*s %-*s",
-				widths[0], result.Provider,
-				widths[1], utils.Truncate(result.Repository.FullName, widths[1], "..."),
-				widths[2], "-",
-				widths[3], "No PRs",
-				widths[4], "-")
+			if !flags.ReadyOnly {
+				// Print no PRs row
+				fmt.Printf("%-*s %-*s %-*s %-*s %-*s",
+					widths[0], result.Provider,
+					widths[1], utils.Truncate(result.Repository.FullName, widths[1], "..."),
+					widths[2], "-",
+					widths[3], "No PRs",
+					widths[4], "-")
 
-			colIndex := 5
-			if flags.ShowStatus {
-				fmt.Printf(" %-*s %-*s", widths[colIndex], "-", widths[colIndex+1], "-")
-				colIndex += 2
+				colIndex := 5
+				if flags.ShowStatus {
+					fmt.Printf(" %-*s %-*s", widths[colIndex], "-", widths[colIndex+1], "-")
+					colIndex += 2
+				}
+				if flags.ShowDetails {
+					fmt.Printf(" %-*s %-*s %-*s", widths[colIndex], "-", widths[colIndex+1], "-", widths[colIndex+2], "-")
+				}
+				fmt.Printf(" %s\n", "")
 			}
-			if flags.ShowDetails {
-				fmt.Printf(" %-*s %-*s %-*s", widths[colIndex], "-", widths[colIndex+1], "-", widths[colIndex+2], "-")
+			continue
+		}
+
+		// Check if any PRs will be displayed after filtering
+		hasDisplayablePRs := false
+		for _, pr := range result.PullRequests {
+			if pr.Skipped && !flags.ShowSkipped {
+				continue
 			}
-			fmt.Printf(" %s\n", "")
+			if flags.ReadyOnly && !pr.Ready {
+				continue
+			}
+			hasDisplayablePRs = true
+			break
+		}
+
+		if !hasDisplayablePRs && flags.ReadyOnly {
+			// Skip this repository entirely if no ready PRs
 			continue
 		}
 
 		for _, pr := range result.PullRequests {
 			if pr.Skipped && !flags.ShowSkipped {
+				continue
+			}
+			if flags.ReadyOnly && !pr.Ready {
 				continue
 			}
 
@@ -371,7 +446,8 @@ func outputCheckResultsTable(results []pr.ProcessResult, flags CheckFlags) error
 	return nil
 }
 
-func outputCheckResultsYAML(results []pr.ProcessResult) error {
+func outputCheckResultsYAML(results []pr.ProcessResult, flags CheckFlags) error {
+	filteredResults := filterResults(results, flags)
 	encoder := yaml.NewEncoder(os.Stdout)
 	defer func() {
 		if err := encoder.Close(); err != nil {
@@ -379,10 +455,10 @@ func outputCheckResultsYAML(results []pr.ProcessResult) error {
 		}
 	}()
 	encoder.SetIndent(2)
-	return encoder.Encode(results)
+	return encoder.Encode(filteredResults)
 }
 
-func outputCheckResultsCSV(results []pr.ProcessResult, showSkipped bool) error {
+func outputCheckResultsCSV(results []pr.ProcessResult, flags CheckFlags) error {
 	writer := csv.NewWriter(os.Stdout)
 	defer writer.Flush()
 
@@ -413,25 +489,48 @@ func outputCheckResultsCSV(results []pr.ProcessResult, showSkipped bool) error {
 		}
 
 		if len(result.PullRequests) == 0 {
-			row := []string{
-				result.Provider,
-				result.Repository.FullName,
-				"-",
-				"No PRs",
-				"-",
-				"-",
-				"-",
-				"false",
-				"",
-			}
-			if err := writer.Write(row); err != nil {
-				return fmt.Errorf("failed to write CSV row: %w", err)
+			if !flags.ReadyOnly {
+				row := []string{
+					result.Provider,
+					result.Repository.FullName,
+					"-",
+					"No PRs",
+					"-",
+					"-",
+					"-",
+					"false",
+					"",
+				}
+				if err := writer.Write(row); err != nil {
+					return fmt.Errorf("failed to write CSV row: %w", err)
+				}
 			}
 			continue
 		}
 
+		// Check if any PRs will be displayed after filtering
+		hasDisplayablePRs := false
 		for _, pr := range result.PullRequests {
-			if pr.Skipped && !showSkipped {
+			if pr.Skipped && !flags.ShowSkipped {
+				continue
+			}
+			if flags.ReadyOnly && !pr.Ready {
+				continue
+			}
+			hasDisplayablePRs = true
+			break
+		}
+
+		if !hasDisplayablePRs && flags.ReadyOnly {
+			// Skip this repository entirely if no ready PRs
+			continue
+		}
+
+		for _, pr := range result.PullRequests {
+			if pr.Skipped && !flags.ShowSkipped {
+				continue
+			}
+			if flags.ReadyOnly && !pr.Ready {
 				continue
 			}
 

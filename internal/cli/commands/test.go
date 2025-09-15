@@ -104,7 +104,7 @@ func runTest(ctx context.Context, flags TestFlags) error {
 		cfg, err = LoadConfig()
 	}
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return HandleConfigError(err, "test")
 	}
 
 	var testsPassed, testsFailed int

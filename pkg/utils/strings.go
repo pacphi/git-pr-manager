@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,6 +27,7 @@ func (su *StringUtils) Truncate(s string, length int, suffix string) string {
 }
 
 // ParseDuration parses a duration string with support for common formats
+// Supports standard Go duration units (ns, us, ms, s, m, h) plus extended units (d, w, y)
 func (su *StringUtils) ParseDuration(s string) (time.Duration, error) {
 	if s == "" {
 		return 0, nil
@@ -36,12 +38,39 @@ func (su *StringUtils) ParseDuration(s string) (time.Duration, error) {
 		return d, nil
 	}
 
+	// Try parsing extended formats (days, weeks, years)
+	if d, err := su.parseExtendedDuration(s); err == nil {
+		return d, nil
+	}
+
 	// Try parsing as seconds if it's just a number
 	if seconds, err := strconv.Atoi(s); err == nil {
 		return time.Duration(seconds) * time.Second, nil
 	}
 
 	return 0, fmt.Errorf("invalid duration format: %s", s)
+}
+
+// parseExtendedDuration parses duration strings with extended units (d, w, y)
+func (su *StringUtils) parseExtendedDuration(s string) (time.Duration, error) {
+	// Define extended units
+	units := map[string]time.Duration{
+		"d": 24 * time.Hour,       // day
+		"w": 7 * 24 * time.Hour,   // week
+		"y": 365 * 24 * time.Hour, // year (approximate)
+	}
+
+	// Check if string ends with any extended unit
+	for suffix, multiplier := range units {
+		if strings.HasSuffix(s, suffix) {
+			numStr := strings.TrimSuffix(s, suffix)
+			if num, err := strconv.ParseFloat(numStr, 64); err == nil {
+				return time.Duration(num * float64(multiplier)), nil
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("invalid extended duration format: %s", s)
 }
 
 // FormatDuration formats a duration in a human-readable way
@@ -75,4 +104,3 @@ func Truncate(s string, length int, suffix string) string {
 func ParseDuration(s string) (time.Duration, error) {
 	return stringUtils.ParseDuration(s)
 }
-

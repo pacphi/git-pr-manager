@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -113,6 +114,28 @@ func setupGlobalConfig(flags GlobalFlags) error {
 // LoadConfig loads the configuration file
 func LoadConfig() (*config.Config, error) {
 	loader := config.NewLoader()
+
+	// Try to read config if not already loaded
+	if viper.ConfigFileUsed() == "" {
+		err := viper.ReadInConfig()
+		if err != nil {
+			// If we can't read the config, let the loader handle finding it
+			return loader.Load("")
+		}
+	}
+
 	return loader.Load(viper.ConfigFileUsed())
 }
 
+// HandleConfigError provides consistent error handling for configuration loading errors across all commands
+func HandleConfigError(err error, operation string) error {
+	// Check if this is a configuration validation error that should be displayed cleanly
+	var configErr *config.ConfigValidationError
+	if errors.As(err, &configErr) {
+		// For config validation errors, print the message directly and exit cleanly
+		fmt.Fprintln(os.Stderr, configErr.Message)
+		os.Exit(1)
+	}
+	// For other errors, return them with a descriptive message
+	return fmt.Errorf("failed to load config: %w", err)
+}

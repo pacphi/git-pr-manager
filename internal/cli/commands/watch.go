@@ -92,7 +92,7 @@ func runWatch(ctx context.Context, flags WatchFlags) error {
 	// Load configuration
 	cfg, err := LoadConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return HandleConfigError(err, "watch")
 	}
 
 	// Create providers

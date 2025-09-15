@@ -78,7 +78,7 @@ func runMergeCommand(ctx context.Context, flags MergeFlags) error {
 	// Load configuration
 	cfg, err := LoadConfig()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return HandleConfigError(err, "merge")
 	}
 
 	// Create executor

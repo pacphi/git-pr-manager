@@ -62,7 +62,7 @@ func runInfo(ctx context.Context, flags InfoFlags) error {
 		cfg, err = LoadConfig()
 	}
 	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+		return HandleConfigError(err, "info")
 	}
 
 	// Create executor to get provider information
