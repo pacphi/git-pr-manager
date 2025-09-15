@@ -27,8 +27,14 @@ func NewFactory(cfg *config.Config) *Factory {
 func (f *Factory) CreateProviders() (map[string]common.Provider, error) {
 	providers := make(map[string]common.Provider)
 
-	// Create GitHub provider if configured
-	if f.config.Auth.GitHub.Token != "" {
+	// Helper function to check if a provider has repositories
+	hasRepos := func(provider string) bool {
+		repos, exists := f.config.Repositories[provider]
+		return exists && len(repos) > 0
+	}
+
+	// Create GitHub provider if configured and has repositories
+	if f.config.Auth.GitHub.Token != "" && hasRepos("github") {
 		provider, err := f.createGitHubProvider()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitHub provider: %w", err)
@@ -36,8 +42,8 @@ func (f *Factory) CreateProviders() (map[string]common.Provider, error) {
 		providers["github"] = provider
 	}
 
-	// Create GitLab provider if configured
-	if f.config.Auth.GitLab.Token != "" {
+	// Create GitLab provider if configured and has repositories
+	if f.config.Auth.GitLab.Token != "" && hasRepos("gitlab") {
 		provider, err := f.createGitLabProvider()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create GitLab provider: %w", err)
@@ -45,8 +51,8 @@ func (f *Factory) CreateProviders() (map[string]common.Provider, error) {
 		providers["gitlab"] = provider
 	}
 
-	// Create Bitbucket provider if configured
-	if f.config.Auth.Bitbucket.Username != "" && f.config.Auth.Bitbucket.AppPassword != "" {
+	// Create Bitbucket provider if configured and has repositories
+	if f.config.Auth.Bitbucket.Username != "" && f.config.Auth.Bitbucket.AppPassword != "" && hasRepos("bitbucket") {
 		provider, err := f.createBitbucketProvider()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Bitbucket provider: %w", err)
