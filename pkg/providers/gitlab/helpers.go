@@ -250,21 +250,21 @@ func (p *Provider) convertMergeRequest(mr *gitlab.MergeRequest) common.PullReque
 	}
 
 	return common.PullRequest{
-		ID:         strconv.Itoa(mr.IID),
-		Number:     mr.IID,
-		Title:      mr.Title,
-		Body:       mr.Description,
-		State:      state,
-		Draft:      mr.Draft,
-		Mergeable:  mergeable,
-		Locked:     false, // GitLab doesn't have locked concept
-		CreatedAt:  func() time.Time {
+		ID:        strconv.Itoa(mr.IID),
+		Number:    mr.IID,
+		Title:     mr.Title,
+		Body:      mr.Description,
+		State:     state,
+		Draft:     mr.Draft,
+		Mergeable: mergeable,
+		Locked:    false, // GitLab doesn't have locked concept
+		CreatedAt: func() time.Time {
 			if mr.CreatedAt != nil {
 				return *mr.CreatedAt
 			}
 			return time.Time{}
 		}(),
-		UpdatedAt:  func() time.Time {
+		UpdatedAt: func() time.Time {
 			if mr.UpdatedAt != nil {
 				return *mr.UpdatedAt
 			}
