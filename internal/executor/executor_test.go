@@ -305,26 +305,49 @@ func TestExecutor_TestAuthentication_Failure(t *testing.T) {
 }
 
 func TestExecutor_TestAuthentication_MultipleProviders(t *testing.T) {
-	mockGitHub := &MockProvider{}
-	mockGitLab := &MockProvider{}
+	// Test case: Multiple providers where authentication succeeds for all
+	t.Run("all_providers_succeed", func(t *testing.T) {
+		mockGitHub := &MockProvider{}
+		mockGitLab := &MockProvider{}
 
-	mockGitHub.On("Authenticate", mock.Anything).Return(nil)
-	mockGitLab.On("Authenticate", mock.Anything).Return(errors.New("gitlab error"))
+		mockGitHub.On("Authenticate", mock.Anything).Return(nil)
+		mockGitLab.On("Authenticate", mock.Anything).Return(nil)
 
-	executor := &Executor{
-		providers: map[string]common.Provider{
-			"github": mockGitHub,
-			"gitlab": mockGitLab,
-		},
-		logger: utils.GetGlobalLogger(),
-	}
+		executor := &Executor{
+			providers: map[string]common.Provider{
+				"github": mockGitHub,
+				"gitlab": mockGitLab,
+			},
+			logger: utils.GetGlobalLogger(),
+		}
 
-	err := executor.TestAuthentication(context.Background())
+		err := executor.TestAuthentication(context.Background())
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "authentication failed for gitlab")
-	mockGitHub.AssertExpectations(t)
-	mockGitLab.AssertExpectations(t)
+		assert.NoError(t, err)
+		mockGitHub.AssertExpectations(t)
+		mockGitLab.AssertExpectations(t)
+	})
+
+	// Test case: One provider fails - method should return early
+	t.Run("one_provider_fails", func(t *testing.T) {
+		mockProvider := &MockProvider{}
+
+		// Use a deterministic single provider that fails
+		mockProvider.On("Authenticate", mock.Anything).Return(errors.New("provider error"))
+
+		executor := &Executor{
+			providers: map[string]common.Provider{
+				"failing_provider": mockProvider,
+			},
+			logger: utils.GetGlobalLogger(),
+		}
+
+		err := executor.TestAuthentication(context.Background())
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "authentication failed for failing_provider")
+		mockProvider.AssertExpectations(t)
+	})
 }
 
 func TestExecutor_GetProviders(t *testing.T) {
