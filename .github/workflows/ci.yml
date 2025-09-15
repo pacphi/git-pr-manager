@@ -132,7 +132,7 @@ jobs:
     - name: Test configuration validation
       run: |
         # Test with sample config
-        cp legacy/configuration/config.sample config.yaml
+        cp config.sample config.yaml
         ./git-pr-cli validate --check-auth=false || echo "Config validation test completed"
 
     - name: Test help commands
