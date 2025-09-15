@@ -24,6 +24,7 @@ type MergeFlags struct {
 	DeleteBranches  bool
 	CustomMessage   string
 	RequireApproval bool
+	RequireChecks   bool
 	Confirm         bool
 }
 
@@ -66,6 +67,7 @@ the configured criteria and are ready for merging.`,
 	cmd.Flags().BoolVar(&flags.DeleteBranches, "delete-branches", false, "Delete branches after successful merge")
 	cmd.Flags().StringVar(&flags.CustomMessage, "message", "", "Custom commit message for merge")
 	cmd.Flags().BoolVar(&flags.RequireApproval, "require-approval", false, "Require manual approval before merging")
+	cmd.Flags().BoolVar(&flags.RequireChecks, "require-checks", false, "Require all status checks to pass")
 	cmd.Flags().BoolVarP(&flags.Confirm, "confirm", "y", false, "Confirm merge operation without prompting")
 
 	return cmd
@@ -107,7 +109,7 @@ func runMergeCommand(ctx context.Context, flags MergeFlags) error {
 		Providers:     flags.Providers,
 		Repositories:  flags.Repositories,
 		MaxAge:        maxAge,
-		RequireChecks: true, // Always require checks for merge operations
+		RequireChecks: flags.RequireChecks,
 	}
 
 	// Process PRs to find ready ones
