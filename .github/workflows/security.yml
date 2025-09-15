@@ -5,9 +5,9 @@ on:
     # Run weekly on Sunday at 2 AM UTC
     - cron: '0 2 * * 0'
   push:
-    branches: [ main, go-rewrite ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, go-rewrite ]
+    branches: [ main ]
 
 permissions:
   contents: read
