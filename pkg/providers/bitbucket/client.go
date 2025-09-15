@@ -134,6 +134,10 @@ func NewProvider(config Config) (*Provider, error) {
 		return nil, fmt.Errorf("bitbucket username and app password are required")
 	}
 
+	if config.Workspace == "" {
+		return nil, fmt.Errorf("workspace is required")
+	}
+
 	// Configure rate limiting
 	rateLimit := config.RateLimit
 	if rateLimit <= 0 {

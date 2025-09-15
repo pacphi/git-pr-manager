@@ -158,6 +158,11 @@ func (h *HTTPClient) SetHeader(key, value string) {
 	h.client.SetHeader(key, value)
 }
 
+// SetBaseURL sets the base URL for all requests
+func (h *HTTPClient) SetBaseURL(baseURL string) {
+	h.client.SetBaseURL(baseURL)
+}
+
 // Get performs a GET request and unmarshals the response into the result
 func (h *HTTPClient) Get(ctx context.Context, path string, result interface{}) error {
 	resp, err := h.client.R().

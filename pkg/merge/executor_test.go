@@ -566,11 +566,11 @@ func TestGenerateCommitMessage(t *testing.T) {
 	pr := createTestPullRequest(123, "Feature: Add cool stuff")
 
 	tests := []struct {
-		name           string
-		method         common.MergeMethod
-		customMessage  string
-		expectedTitle  string
-		expectedBody   string
+		name          string
+		method        common.MergeMethod
+		customMessage string
+		expectedTitle string
+		expectedBody  string
 	}{
 		{
 			name:          "squash merge with PR number",

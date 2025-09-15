@@ -116,8 +116,8 @@ func TestFactory_CreateProviders(t *testing.T) {
 					},
 				},
 				Repositories: map[string][]config.Repository{
-					"github": {{Name: "owner/github-repo"}},
-					"gitlab": {{Name: "owner/gitlab-repo"}},
+					"github":    {{Name: "owner/github-repo"}},
+					"gitlab":    {{Name: "owner/gitlab-repo"}},
 					"bitbucket": {{Name: "owner/bitbucket-repo"}},
 				},
 			},
@@ -695,8 +695,8 @@ func TestFactory_Integration(t *testing.T) {
 				},
 			},
 			Repositories: map[string][]config.Repository{
-				"github": {{Name: "owner/github-repo"}},
-				"gitlab": {{Name: "owner/gitlab-repo"}},
+				"github":    {{Name: "owner/github-repo"}},
+				"gitlab":    {{Name: "owner/gitlab-repo"}},
 				"bitbucket": {{Name: "owner/bitbucket-repo"}},
 			},
 		}

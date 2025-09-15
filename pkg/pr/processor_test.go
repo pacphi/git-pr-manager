@@ -83,12 +83,12 @@ func createTestConfig() *config.Config {
 		Repositories: map[string][]config.Repository{
 			"github": {
 				{
-					Name:         "owner/test-repo",
-					SkipLabels:   []string{"wip"},
+					Name:          "owner/test-repo",
+					SkipLabels:    []string{"wip"},
 					RequireChecks: true,
 				},
 				{
-					Name:         "owner/another-repo",
+					Name:          "owner/another-repo",
 					RequireChecks: false,
 				},
 			},
@@ -700,9 +700,9 @@ func TestProcessOptions(t *testing.T) {
 func TestProcessedPR(t *testing.T) {
 	pr := createTestPullRequest(123, "Test PR", common.PRStateOpen)
 	status := PRStatus{
-		State: common.PRStatusSuccess,
-		Ready: true,
-		Reason: "ready to merge",
+		State:     common.PRStatusSuccess,
+		Ready:     true,
+		Reason:    "ready to merge",
 		UpdatedAt: time.Now(),
 	}
 

@@ -232,7 +232,7 @@ func TestExecutor_MergePRs(t *testing.T) {
 		DryRun: true,
 	}
 
-	results, err := executor.MergePRs(context.Background(), processResults, mergeOpts)
+	results, _ := executor.MergePRs(context.Background(), processResults, mergeOpts)
 
 	// Since we're using real GitHub provider (which will fail auth), we expect some kind of result
 	assert.NotNil(t, results)
@@ -377,7 +377,7 @@ func TestExecutor_ContextCancellation(t *testing.T) {
 	}
 
 	// This should handle cancellation gracefully
-	results, err := executor.ProcessPRs(ctx, opts)
+	results, _ := executor.ProcessPRs(ctx, opts)
 
 	// Depending on implementation, this might return an error or empty results
 	// We're mainly testing that it doesn't panic
@@ -396,7 +396,7 @@ func TestExecutor_Integration_FullWorkflow(t *testing.T) {
 		DryRun:    true,
 	}
 
-	processResults, err := executor.ProcessPRs(context.Background(), processOpts)
+	processResults, _ := executor.ProcessPRs(context.Background(), processOpts)
 	assert.NotNil(t, processResults) // Don't check error since GitHub will fail without real auth
 
 	// Step 2: Validate mergeability (even with empty results)
@@ -408,7 +408,7 @@ func TestExecutor_Integration_FullWorkflow(t *testing.T) {
 		DryRun: true,
 	}
 
-	mergeResults, err := executor.MergePRs(context.Background(), processResults, mergeOpts)
+	mergeResults, _ := executor.MergePRs(context.Background(), processResults, mergeOpts)
 	assert.NotNil(t, mergeResults)
 
 	// Step 4: Clean up
