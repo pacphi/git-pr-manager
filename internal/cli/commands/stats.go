@@ -116,6 +116,12 @@ Shows information about:
 
 // runStats generates and displays repository statistics
 func runStats(ctx context.Context, flags StatsFlags) error {
+	// Validate flags
+	if flags.Top < 0 {
+		fmt.Fprintln(os.Stderr, "--top must be non-negative (0 to show all repositories)")
+		os.Exit(1)
+	}
+
 	logger := utils.GetGlobalLogger()
 
 	logger.Info("Gathering repository statistics...")

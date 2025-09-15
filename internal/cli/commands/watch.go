@@ -68,6 +68,12 @@ Use Ctrl+C to stop monitoring.`,
 
 // runWatch runs the watch command
 func runWatch(ctx context.Context, flags WatchFlags) error {
+	// Validate flags
+	if flags.MaxIterations < 0 {
+		fmt.Fprintln(os.Stderr, "--max-iterations must be non-negative (0 for unlimited iterations)")
+		os.Exit(1)
+	}
+
 	logger := utils.GetGlobalLogger()
 
 	logger.Info("Starting PR monitoring...")
