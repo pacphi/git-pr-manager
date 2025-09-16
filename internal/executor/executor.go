@@ -7,8 +7,8 @@ import (
 	"github.com/pacphi/git-pr-manager/pkg/config"
 	"github.com/pacphi/git-pr-manager/pkg/merge"
 	"github.com/pacphi/git-pr-manager/pkg/pr"
+	"github.com/pacphi/git-pr-manager/pkg/providers"
 	"github.com/pacphi/git-pr-manager/pkg/providers/common"
-	"github.com/pacphi/git-pr-manager/pkg/providers/github"
 	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
@@ -25,27 +25,16 @@ type Executor struct {
 func New(cfg *config.Config) (*Executor, error) {
 	logger := utils.GetGlobalLogger()
 
-	// Initialize providers
-	providers := make(map[string]common.Provider)
-
-	// GitHub provider
-	if cfg.Auth.GitHub.Token != "" {
-		ghProvider, err := github.NewProvider(github.Config{
-			Token:     cfg.Auth.GitHub.Token,
-			RateLimit: cfg.Behavior.RateLimit.RequestsPerSecond,
-			RateBurst: cfg.Behavior.RateLimit.Burst,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create GitHub provider: %w", err)
-		}
-		providers["github"] = ghProvider
-		logger.Debug("GitHub provider initialized")
+	// Initialize providers using the factory
+	factory := providers.NewFactory(cfg)
+	providers, err := factory.CreateProviders()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create providers: %w", err)
 	}
 
-	// TODO: Add GitLab and Bitbucket providers here
-
-	if len(providers) == 0 {
-		return nil, fmt.Errorf("no providers configured")
+	logger.Debugf("Initialized %d provider(s)", len(providers))
+	for name := range providers {
+		logger.Debugf("Provider initialized: %s", name)
 	}
 
 	// Create processors
