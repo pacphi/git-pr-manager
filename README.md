@@ -1,5 +1,7 @@
 # Git PR Manager
 
+[![CI](https://github.com/pacphi/git-pr-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/git-pr-manager/actions/workflows/ci.yml) [![Known Vulnerabilities](https://snyk.io/test/github/pacphi/git-pr-manager/badge.svg)](https://snyk.io/test/github/pacphi/git-pr-manager)
+
 🚀 **Modern Go-based tool for automating pull request management across multiple Git repositories**
 
 Git PR CLI provides a fast, reliable, and feature-rich solution for managing dependency updates and pull requests across GitHub, GitLab, and Bitbucket repositories from a single configuration.
