@@ -1,0 +1,49 @@
+# Gitleaks configuration file
+# See: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+title = "gitleaks config"
+
+# Allowlist configuration to suppress false positives
+[allowlist]
+description = "Global allowlist"
+regexes = [
+    # Allow example webhook URLs in documentation and env examples
+    '''https://hooks\.slack\.com/services/your/webhook/url''',
+    '''https://hooks\.slack\.com/services/\.\.\.$''',
+    # Allow placeholder tokens in documentation
+    '''your_github_personal_access_token_here''',
+    '''your_gitlab_personal_access_token_here''',
+    '''your_bitbucket_app_password_here''',
+    '''your_email_password_or_app_password''',
+]
+
+paths = [
+    # Allow example files and documentation
+    '''.env.example''',
+    '''config.sample''',
+    '''docs/.*\.md''',
+    '''README\.md''',
+    # Allow Makefile examples
+    '''Makefile''',
+]
+
+# Override the slack-webhook-url rule to be more specific
+[[rules]]
+id = "slack-webhook-url"
+description = "Slack Webhook URL"
+regex = '''xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}'''
+keywords = [
+    "slack",
+    "webhook",
+]
+
+# Only detect actual webhook tokens, not example URLs
+[[rules]]
+id = "slack-webhook-url-real"
+description = "Slack Webhook URL (Real)"
+regex = '''https://hooks\.slack\.com/services/T[A-Z0-9]{8,12}/B[A-Z0-9]{8,12}/[A-Za-z0-9]{20,25}'''
+keywords = [
+    "slack",
+    "webhook",
+    "hooks.slack.com",
+]
