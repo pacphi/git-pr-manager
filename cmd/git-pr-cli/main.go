@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/pacphi/git-pr-manager/internal/cli/commands"
+	"github.com/pacphi/git-pr-manager/internal/tui"
 	"github.com/pacphi/git-pr-manager/pkg/utils"
 )
 
@@ -35,7 +36,28 @@ func main() {
 	logger := utils.NewLogger()
 	utils.SetGlobalLogger(logger)
 
-	// Create root command
+	// Check if we should launch TUI mode (no arguments provided)
+	if len(os.Args) == 1 {
+		// Try to load config for TUI mode
+		cfg, err := commands.LoadConfig()
+		if err != nil {
+			// If config loading fails, fall back to CLI help
+			fmt.Fprintf(os.Stderr, "Failed to load configuration for TUI mode: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Run 'git-pr-cli setup' to create a configuration, or use CLI commands directly.\n")
+			fmt.Fprintf(os.Stderr, "Use 'git-pr-cli --help' for available commands.\n")
+			os.Exit(1)
+		}
+
+		// Launch TUI
+		if err := tui.Run(ctx, cfg); err != nil {
+			logger.WithError(err).Error("TUI execution failed")
+			fmt.Fprintf(os.Stderr, "TUI Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Create root command for CLI mode
 	rootCmd := commands.NewRootCommand(version, buildTime, commitSHA)
 
 	// Execute command

@@ -1,5 +1,6 @@
 # Git PR Manager
 
+[![Version](https://img.shields.io/github/v/release/pacphi/git-pr-manager?include_prereleases)](https://github.com/pacphi/git-pr-manager/releases)
 [![CI](https://github.com/pacphi/git-pr-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/pacphi/git-pr-manager/actions/workflows/ci.yml) [![Known Vulnerabilities](https://snyk.io/test/github/pacphi/git-pr-manager/badge.svg)](https://snyk.io/test/github/pacphi/git-pr-manager)
 
 🚀 **Modern Go-based tool for automating pull request management across multiple Git repositories**
