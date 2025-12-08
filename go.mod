@@ -9,9 +9,9 @@ require (
 	github.com/go-resty/resty/v2 v2.17.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mark3labs/mcp-go v0.43.1
+	github.com/mark3labs/mcp-go v0.43.2
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
