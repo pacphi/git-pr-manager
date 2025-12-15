@@ -104,7 +104,7 @@ jobs:
       run: make cross-compile
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: git-pr-binaries-${{ github.sha }}
         path: bin/
