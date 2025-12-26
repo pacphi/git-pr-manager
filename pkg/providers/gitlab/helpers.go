@@ -100,7 +100,7 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 	}
 
 	return common.Repository{
-		ID:            strconv.Itoa(project.ID),
+		ID:            strconv.FormatInt(project.ID, 10),
 		Name:          project.Name,
 		FullName:      project.PathWithNamespace,
 		Description:   project.Description,
@@ -125,8 +125,8 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 			}
 			return time.Time{}
 		}(),
-		StarCount:  project.StarCount,
-		ForkCount:  project.ForksCount,
+		StarCount:  int(project.StarCount),
+		ForkCount:  int(project.ForksCount),
 		IsArchived: project.Archived,
 		IsDisabled: false, // GitLab doesn't have disabled concept
 		IsFork:     project.ForkedFromProject != nil,
@@ -136,7 +136,7 @@ func (p *Provider) convertProject(project *gitlab.Project) common.Repository {
 		Owner: func() common.User {
 			if project.Owner != nil {
 				return common.User{
-					ID:    strconv.Itoa(project.Owner.ID),
+					ID:    strconv.FormatInt(project.Owner.ID, 10),
 					Login: project.Owner.Username,
 					Name:  project.Owner.Name,
 					Email: project.Owner.Email,
@@ -173,15 +173,15 @@ func (p *Provider) convertBasicMergeRequest(mr *gitlab.BasicMergeRequest) common
 	}
 
 	return common.PullRequest{
-		ID:     strconv.Itoa(mr.IID),
-		Number: mr.IID,
+		ID:     strconv.FormatInt(mr.IID, 10),
+		Number: int(mr.IID),
 		Title:  mr.Title,
 		Body:   mr.Description,
 		State:  state,
 		Author: func() common.User {
 			if mr.Author != nil {
 				return common.User{
-					ID:    strconv.Itoa(mr.Author.ID),
+					ID:    strconv.FormatInt(mr.Author.ID, 10),
 					Login: mr.Author.Username,
 					Name:  mr.Author.Name,
 					Email: "",
@@ -250,8 +250,8 @@ func (p *Provider) convertMergeRequest(mr *gitlab.MergeRequest) common.PullReque
 	}
 
 	return common.PullRequest{
-		ID:        strconv.Itoa(mr.IID),
-		Number:    mr.IID,
+		ID:        strconv.FormatInt(mr.IID, 10),
+		Number:    int(mr.IID),
 		Title:     mr.Title,
 		Body:      mr.Description,
 		State:     state,
@@ -278,7 +278,7 @@ func (p *Provider) convertMergeRequest(mr *gitlab.MergeRequest) common.PullReque
 		Author: func() common.User {
 			if mr.Author != nil {
 				return common.User{
-					ID:    strconv.Itoa(mr.Author.ID),
+					ID:    strconv.FormatInt(mr.Author.ID, 10),
 					Login: mr.Author.Username,
 					Name:  mr.Author.Name,
 					Email: "",

@@ -241,7 +241,7 @@ func (p *Provider) GetPullRequest(ctx context.Context, repo common.Repository, n
 
 	return executeWithBehaviorAndResult(ctx, p, "get_pull_request", func() (*common.PullRequest, error) {
 		projectPath := fmt.Sprintf("%s/%s", owner, name)
-		mr, _, err := p.client.MergeRequests.GetMergeRequest(projectPath, number, nil)
+		mr, _, err := p.client.MergeRequests.GetMergeRequest(projectPath, int64(number), nil)
 		if err != nil {
 			return nil, p.handleGitLabError("failed to get merge request", err)
 		}
@@ -278,7 +278,7 @@ func (p *Provider) MergePullRequest(ctx context.Context, repo common.Repository,
 			p.logger.Warn("Rebase merge not directly supported in GitLab, using merge")
 		}
 
-		_, _, err = p.client.MergeRequests.AcceptMergeRequest(projectPath, pr.Number, acceptOpts)
+		_, _, err = p.client.MergeRequests.AcceptMergeRequest(projectPath, int64(pr.Number), acceptOpts)
 		if err != nil {
 			return p.handleGitLabError("failed to merge request", err)
 		}
@@ -343,7 +343,7 @@ func (p *Provider) GetChecks(ctx context.Context, repo common.Repository, pr com
 		checks := make([]common.Check, 0, len(pipelines))
 		for _, pipeline := range pipelines {
 			check := common.Check{
-				ID:         strconv.Itoa(pipeline.ID),
+				ID:         strconv.FormatInt(pipeline.ID, 10),
 				Name:       fmt.Sprintf("Pipeline #%d", pipeline.ID),
 				Status:     common.CheckStatus(pipeline.Status),
 				Conclusion: pipeline.Status,
