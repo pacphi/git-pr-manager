@@ -413,7 +413,7 @@ func outputStatsTable(stats *GlobalStats, detailed bool) error {
 			count int
 		}
 
-		var langs []langCount
+		langs := make([]langCount, 0, len(stats.ByLanguage))
 		for lang, count := range stats.ByLanguage {
 			langs = append(langs, langCount{lang: lang, count: count})
 		}
@@ -468,7 +468,7 @@ func outputStatsTable(stats *GlobalStats, detailed bool) error {
 			}
 
 			if len(repo.TopActors) > 0 {
-				var actors []string
+				actors := make([]string, 0, len(repo.TopActors))
 				for _, actor := range repo.TopActors {
 					actors = append(actors, fmt.Sprintf("%s (%d)", actor.Actor, actor.Count))
 				}

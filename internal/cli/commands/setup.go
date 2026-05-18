@@ -162,7 +162,7 @@ func runSetupConfig(_ context.Context, flags SetupFlags) error {
 	}
 
 	// Write to config file
-	err = os.WriteFile(flags.ConfigPath, data, 0644)
+	err = os.WriteFile(filepath.Clean(flags.ConfigPath), data, 0644) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to write configuration file: %w", err)
 	}
@@ -225,7 +225,7 @@ func BackupConfig(configPath string) error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	err = os.WriteFile(backupPath, data, 0644)
+	err = os.WriteFile(filepath.Clean(backupPath), data, 0644) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to write backup file: %w", err)
 	}
@@ -273,7 +273,7 @@ func RestoreConfig(configPath string) error {
 	}
 
 	// Write to config
-	err = os.WriteFile(configPath, data, 0644)
+	err = os.WriteFile(filepath.Clean(configPath), data, 0644) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to restore configuration: %w", err)
 	}

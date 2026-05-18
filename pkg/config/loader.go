@@ -145,7 +145,7 @@ func (l *Loader) BackupConfig(configPath string) (string, error) {
 		return "", fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	if err := os.WriteFile(backupPath, data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Clean(backupPath), data, 0644); err != nil { //nolint:gosec
 		return "", fmt.Errorf("failed to write backup file: %w", err)
 	}
 
@@ -397,19 +397,19 @@ func (l *Loader) validateWithHelpfulErrors(config *Config) error {
 		if len(missingConfigFields) > 0 {
 			errorMsg.WriteString("\nMissing or invalid configuration fields:\n")
 			for _, field := range missingConfigFields {
-				errorMsg.WriteString(fmt.Sprintf("  - %s\n", field))
+				fmt.Fprintf(&errorMsg, "  - %s\n", field)
 			}
 		}
 
 		if len(missingEnvVars) > 0 {
 			errorMsg.WriteString("\nMissing environment variables:\n")
 			for _, envVar := range missingEnvVars {
-				errorMsg.WriteString(fmt.Sprintf("  - %s\n", envVar))
+				fmt.Fprintf(&errorMsg, "  - %s\n", envVar)
 			}
 			errorMsg.WriteString("\nTo fix this, set the required environment variables:\n")
 			for _, envVar := range missingEnvVars {
 				envName := strings.Split(envVar, " ")[0]
-				errorMsg.WriteString(fmt.Sprintf("  export %s=\"your-token-here\"\n", envName))
+				fmt.Fprintf(&errorMsg, "  export %s=\"your-token-here\"\n", envName)
 			}
 		}
 

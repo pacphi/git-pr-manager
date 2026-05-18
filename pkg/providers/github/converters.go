@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v68/github"
 
 	"github.com/pacphi/git-pr-manager/pkg/providers/common"
 )

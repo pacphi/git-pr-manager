@@ -26,7 +26,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: 1.24
+        go-version: 1.26
         cache: true
 
     - name: Download dependencies
@@ -35,7 +35,7 @@ jobs:
     - name: Run govulncheck
       uses: golang/govulncheck-action@v1
       with:
-        go-version-input: 1.24
+        go-version-input: 1.26
         go-package: ./...
         repo-checkout: false
 
@@ -103,7 +103,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: 1.24
+        go-version: 1.26
         cache: true
 
     - name: Build for CodeQL
@@ -143,7 +143,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: 1.24
+        go-version: 1.26
         cache: true
 
     - name: Download dependencies

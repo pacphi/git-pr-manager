@@ -68,7 +68,7 @@ If pre-built binaries aren't available for your platform:
 
 **Requirements:**
 
-- Go 1.24+ ([Download Go](https://golang.org/dl/))
+- Go 1.26+ ([Download Go](https://golang.org/dl/))
 - Git
 - Make (optional, for convenience)
 
@@ -371,7 +371,7 @@ ls -la git-pr-cli
 
 ```bash
 # Update Go to latest version
-go version  # Should be 1.24+
+go version  # Should be 1.26+
 
 # Clean Go modules
 go clean -modcache

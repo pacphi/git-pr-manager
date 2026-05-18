@@ -134,21 +134,21 @@ func (s *SlackNotifier) buildMergeResultsMessage(results []merge.MergeResult) Sl
 	// Summary text
 	var summaryText strings.Builder
 	summaryText.WriteString("🤖 *Pull Request Merge Summary*\n")
-	summaryText.WriteString(fmt.Sprintf("📊 Processed %d PRs: ", len(results)))
+	fmt.Fprintf(&summaryText, "📊 Processed %d PRs: ", len(results))
 	if successful > 0 {
-		summaryText.WriteString(fmt.Sprintf("✅ %d merged", successful))
+		fmt.Fprintf(&summaryText, "✅ %d merged", successful)
 	}
 	if failed > 0 {
 		if successful > 0 {
 			summaryText.WriteString(", ")
 		}
-		summaryText.WriteString(fmt.Sprintf("❌ %d failed", failed))
+		fmt.Fprintf(&summaryText, "❌ %d failed", failed)
 	}
 	if skipped > 0 {
 		if successful > 0 || failed > 0 {
 			summaryText.WriteString(", ")
 		}
-		summaryText.WriteString(fmt.Sprintf("⏭️ %d skipped", skipped))
+		fmt.Fprintf(&summaryText, "⏭️ %d skipped", skipped)
 	}
 
 	// Create summary attachment
@@ -195,10 +195,10 @@ func (s *SlackNotifier) buildMergeResultsMessage(results []merge.MergeResult) Sl
 		var failedDetails strings.Builder
 		for _, result := range results {
 			if result.Error != nil {
-				failedDetails.WriteString(fmt.Sprintf("• *%s* #%d: %s\n",
+				fmt.Fprintf(&failedDetails, "• *%s* #%d: %s\n",
 					result.Repository,
 					result.PullRequest,
-					result.Error.Error()))
+					result.Error.Error())
 			}
 		}
 
@@ -219,13 +219,13 @@ func (s *SlackNotifier) buildMergeResultsMessage(results []merge.MergeResult) Sl
 		for _, result := range results {
 			if result.Error == nil && !result.Skipped {
 				if count >= 10 {
-					successDetails.WriteString(fmt.Sprintf("... and %d more\n", successful-10))
+					fmt.Fprintf(&successDetails, "... and %d more\n", successful-10)
 					break
 				}
-				successDetails.WriteString(fmt.Sprintf("• *%s* #%d: %s\n",
+				fmt.Fprintf(&successDetails, "• *%s* #%d: %s\n",
 					result.Repository,
 					result.PullRequest,
-					result.Title))
+					result.Title)
 				count++
 			}
 		}

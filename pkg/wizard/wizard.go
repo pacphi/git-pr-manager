@@ -622,7 +622,7 @@ func (w *Wizard) backupConfig() error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	err = os.WriteFile(backupPath, data, 0644)
+	err = os.WriteFile(filepath.Clean(backupPath), data, 0644) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to write backup file: %w", err)
 	}

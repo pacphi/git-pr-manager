@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/go-github/v57/github"
+	"github.com/google/go-github/v68/github"
 	"golang.org/x/time/rate"
 
 	"github.com/pacphi/git-pr-manager/pkg/config"

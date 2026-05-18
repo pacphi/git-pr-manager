@@ -312,25 +312,25 @@ func (e *EmailNotifier) renderTextTemplate(data EmailTemplate) string {
 
 	buf.WriteString("Git PR Automation Results\n")
 	buf.WriteString("========================\n\n")
-	buf.WriteString(fmt.Sprintf("Timestamp: %s\n\n", data.Timestamp))
+	fmt.Fprintf(&buf, "Timestamp: %s\n\n", data.Timestamp)
 
 	buf.WriteString("Summary:\n")
-	buf.WriteString(fmt.Sprintf("- Total PRs: %d\n", data.Summary.Total))
-	buf.WriteString(fmt.Sprintf("- Successfully merged: %d\n", data.Summary.Successful))
-	buf.WriteString(fmt.Sprintf("- Failed: %d\n", data.Summary.Failed))
-	buf.WriteString(fmt.Sprintf("- Skipped: %d\n\n", data.Summary.Skipped))
+	fmt.Fprintf(&buf, "- Total PRs: %d\n", data.Summary.Total)
+	fmt.Fprintf(&buf, "- Successfully merged: %d\n", data.Summary.Successful)
+	fmt.Fprintf(&buf, "- Failed: %d\n", data.Summary.Failed)
+	fmt.Fprintf(&buf, "- Skipped: %d\n\n", data.Summary.Skipped)
 
 	if len(data.Successful) > 0 {
 		buf.WriteString("Successfully Merged PRs:\n")
 		buf.WriteString("========================\n")
 		for _, result := range data.Successful {
-			buf.WriteString(fmt.Sprintf("✅ %s #%d: %s\n",
+			fmt.Fprintf(&buf, "✅ %s #%d: %s\n",
 				result.Repository,
 				result.PullRequest,
-				result.Title))
-			buf.WriteString(fmt.Sprintf("   Author: %s | Method: %s\n\n",
+				result.Title)
+			fmt.Fprintf(&buf, "   Author: %s | Method: %s\n\n",
 				result.Author,
-				result.MergeMethod))
+				result.MergeMethod)
 		}
 	}
 
@@ -338,13 +338,13 @@ func (e *EmailNotifier) renderTextTemplate(data EmailTemplate) string {
 		buf.WriteString("Failed Merges:\n")
 		buf.WriteString("==============\n")
 		for _, result := range data.Failed {
-			buf.WriteString(fmt.Sprintf("❌ %s #%d: %s\n",
+			fmt.Fprintf(&buf, "❌ %s #%d: %s\n",
 				result.Repository,
 				result.PullRequest,
-				result.Title))
-			buf.WriteString(fmt.Sprintf("   Author: %s | Error: %s\n\n",
+				result.Title)
+			fmt.Fprintf(&buf, "   Author: %s | Error: %s\n\n",
 				result.Author,
-				result.Error.Error()))
+				result.Error.Error())
 		}
 	}
 
@@ -352,13 +352,13 @@ func (e *EmailNotifier) renderTextTemplate(data EmailTemplate) string {
 		buf.WriteString("Skipped PRs:\n")
 		buf.WriteString("============\n")
 		for _, result := range data.Skipped {
-			buf.WriteString(fmt.Sprintf("⏭️ %s #%d: %s\n",
+			fmt.Fprintf(&buf, "⏭️ %s #%d: %s\n",
 				result.Repository,
 				result.PullRequest,
-				result.Title))
-			buf.WriteString(fmt.Sprintf("   Author: %s | Reason: %s\n\n",
+				result.Title)
+			fmt.Fprintf(&buf, "   Author: %s | Reason: %s\n\n",
 				result.Author,
-				result.Reason))
+				result.Reason)
 		}
 	}
 
@@ -369,9 +369,9 @@ func (e *EmailNotifier) renderTextTemplate(data EmailTemplate) string {
 func (e *EmailNotifier) sendEmail(_ context.Context, subject, textBody, htmlBody string) error {
 	// Create message
 	var msg bytes.Buffer
-	msg.WriteString(fmt.Sprintf("From: %s\r\n", e.from))
-	msg.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(e.to, ", ")))
-	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+	fmt.Fprintf(&msg, "From: %s\r\n", e.from)
+	fmt.Fprintf(&msg, "To: %s\r\n", strings.Join(e.to, ", "))
+	fmt.Fprintf(&msg, "Subject: %s\r\n", subject)
 	msg.WriteString("MIME-Version: 1.0\r\n")
 	msg.WriteString("Content-Type: multipart/alternative; boundary=\"boundary123\"\r\n")
 	msg.WriteString("\r\n")
