@@ -2,7 +2,7 @@ module github.com/pacphi/git-pr-manager
 
 go 1.26.0
 
-toolchain go1.26.3
+toolchain go1.26.10
 
 require (
 	github.com/go-playground/validator/v10 v10.30.2
